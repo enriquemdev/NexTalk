@@ -1,0 +1,90 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: This document defines the project rules and authorized tech stack for NextTalk, ensuring consistency, performance, and scalability in development.
+globs: 
+alwaysApply: true
+---
+# Project Rules for Development
+
+## Authorized Tech Stack
+The project must strictly adhere to the following technologies. Do not introduce additional frameworks, libraries, or tools outside of this list unless explicitly requested and approved:
+
+- **Frontend:**
+  - Next.js v15 (with App Router)
+  - TypeScript
+  - Tailwind CSS
+  - Shadcn UI components
+  - JavaScript (vanilla JS for custom scripts)
+
+- **Backend:**
+  - Next.js API routes (for server-side logic)
+  - Convex (for real-time database, authentication, and object storage)
+
+- **AI Integrations:**
+  - Vercel SDK with OpenAI API (for general AI features like recommendations and summaries)
+  - Eleven Labs API (for speech-to-text and text-to-speech functionalities)
+
+- **Optional Tools (if strictly needed):**
+  - Upstash (for caching or queues)
+  - Luma AI (for video generation in commercial features)
+  - Fal AI (for image generation in commercial features)
+
+- **Testing:**
+  - Jest (for unit and integration tests)
+  - Cypress or Playwright (for end-to-end tests)
+
+- **Deployment:**
+  - Vercel (for hosting and serverless functions)
+
+## Development Guidelines
+
+1. **Prioritize Existing Tools:**
+   - Always leverage the installed tech stack (Next.js, Convex, Shadcn) before suggesting or integrating external libraries.
+   - Example: Use Convex’s real-time features for data syncing instead of adding a new library.
+
+2. **Next.js Constraints:**
+   - Use the App Router exclusively for routing and navigation.
+   - Implement server-side logic via Next.js API routes or Vercel serverless functions.
+   - Avoid features requiring advanced server configurations not supported by Vercel.
+
+3. **Frontend Development:**
+   - Use Tailwind CSS for styling, ensuring compatibility with Shadcn UI components.
+   - Leverage Next.js optimizations (e.g., image optimization, code splitting).
+   - Use functional components with hooks; avoid class components.
+
+4. **Backend and Database:**
+   - Use Convex exclusively for database operations, real-time updates, and authentication.
+   - Define schemas and queries in the `/convex` directory.
+   - Optimize real-time data handling for low latency.
+
+5. **AI Integration Best Practices:**
+   - Optimize OpenAI and Eleven Labs API calls to reduce costs and latency.
+   - Make AI features (e.g., translations, captions) optional and user-toggleable.
+   - Handle audio streams efficiently for speech processing.
+
+6. **Testing:**
+   - Write unit tests for critical components and utilities using Jest.
+   - Implement integration tests for real-time features and AI integrations.
+   - Use Cypress or Playwright for end-to-end tests to verify user flows.
+
+7. **Performance and Scalability:**
+   - Implement lazy loading and code splitting to minimize initial load times.
+   - Optimize Convex queries to prevent performance bottlenecks.
+   - Monitor and enhance real-time updates for large sessions.
+
+8. **Security:**
+   - Use Convex for secure authentication and authorization.
+   - Validate all user inputs and secure API routes.
+   - Ensure payment integrations (in commercial features) follow security best practices.
+
+9. **Code Maintenance:**
+   - Do not erase or modify code providing existing functionality unless explicitly instructed.
+   - Accumulate functionality in files like migrations or seeders without removing prior implementations.
+   - Example: Add new permissions or schema entries without deleting existing ones unless necessary.
+
+## Objective
+The goal is to maintain a high-performance, scalable, and secure application using the specified tech stack. These rules ensure NextTalk remains consistent, maintainable, and aligned with its vision as a top-tier real-time audio discussion platform.
