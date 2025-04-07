@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
----
 description: This document defines the project rules and authorized tech stack for NextTalk, ensuring consistency, performance, and scalability in development.
 globs: 
 alwaysApply: true

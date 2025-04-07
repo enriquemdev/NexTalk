@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
----
 description: This is the project rule file for NextTalk, a real-time audio discussion platform built with Next.js v15, TypeScript, Convex, Tailwind CSS, Shadcn, and AI integrations like OpenAI and Eleven Labs. It outlines the project's description, mission, vision, guidelines, and objectives to guide the development team.
 globs: 
 alwaysApply: true
