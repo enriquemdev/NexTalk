@@ -1,5 +1,42 @@
 CHANGELOG
 
+Date: 2024-04-09
+
+FIX: Authentication Synchronization with Convex
+
+Description: Fixed an issue where users authenticated with Clerk were not being properly synchronized with the Convex database.
+
+Implementation Details:
+1. Created AuthSync Component:
+   - Added a new component in src/components/auth/auth-sync.tsx that synchronizes Clerk authentication with Convex
+   - Component automatically creates/updates user records in Convex when users authenticate
+   - Added the component to the root layout for app-wide synchronization
+
+2. Enhanced useCurrentUser Hook:
+   - Updated the hook to handle cases where users are logged in with Clerk but don't have a Convex user yet
+   - Added automatic user creation in the hook as a fallback mechanism
+
+Purpose: This fix ensures that all authenticated users have corresponding records in the Convex database, resolving the "You must be logged in to create a room" error that occurred even when users were authenticated.
+
+Date: 2024-04-09
+
+FIX: Room Creation Error - Missing User ID
+
+Description: Fixed an issue where creating rooms failed with an ArgumentValidationError due to missing userId field.
+
+Implementation Details:
+1. Created a useCurrentUser Custom Hook:
+   - Created a new hook in src/hooks/useCurrentUser.ts to retrieve the current authenticated user
+   - Hook connects Clerk auth with Convex database user
+   - Returns user object and userId for use in components
+
+2. Updated Room Creation Form:
+   - Modified src/components/rooms/create-room-form.tsx to use the new hook
+   - Added userId to the room creation mutation
+   - Added error handling for unauthenticated users
+
+Purpose: This fix resolves a critical issue that prevented users from creating new rooms by ensuring the required userId field is passed to the Convex mutation.
+
 Date: 2024-04-08
 
 UPDATE: Fixed UI Implementation and Created Missing Components

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface CreateRoomFormProps {
   onSuccess?: () => void;
@@ -17,6 +18,7 @@ interface CreateRoomFormProps {
 export function CreateRoomForm({ onSuccess }: CreateRoomFormProps) {
   const { toast } = useToast();
   const createRoom = useMutation(api.rooms.create);
+  const { userId } = useCurrentUser();
   const [isLoading, setIsLoading] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [isRecorded, setIsRecorded] = useState(false);
@@ -26,12 +28,17 @@ export function CreateRoomForm({ onSuccess }: CreateRoomFormProps) {
     setIsLoading(true);
 
     try {
+      if (!userId) {
+        throw new Error("You must be logged in to create a room");
+      }
+
       const formData = new FormData(event.currentTarget);
       await createRoom({
         name: formData.get("name") as string,
         description: formData.get("description") as string,
         isPrivate,
         isRecorded,
+        userId,
       });
 
       toast({
@@ -41,6 +48,7 @@ export function CreateRoomForm({ onSuccess }: CreateRoomFormProps) {
 
       onSuccess?.();
     } catch (error) {
+      console.error("Failed to create room:", error);
       toast({
         title: "Error",
         description: "Failed to create room. Please try again.",

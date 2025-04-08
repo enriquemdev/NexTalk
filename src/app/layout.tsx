@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AudioContextProvider } from "@/providers/audio-provider";
 import { ThemeToggle } from "@/components/core/theme-toggle";
+import { AuthSync } from "@/components/auth/auth-sync";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,6 +34,7 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               <AudioContextProvider>
+                <AuthSync />
                 <main className="min-h-screen bg-gradient-to-b from-background to-background/90">
                   <header className="border-b">
                     <div className="container mx-auto py-4 px-4 flex items-center justify-between">
