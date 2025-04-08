@@ -2,8 +2,8 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { RoomCard } from "@/components/RoomCard";
-import { CreateRoomForm } from "@/components/CreateRoomForm";
+import { RoomCard } from "@/components/rooms/room-card";
+import { CreateRoomForm } from "@/components/rooms/create-room-form";
 import { Toaster } from "sonner";
 
 export default function Home() {
