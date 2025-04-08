@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NextTalk
+
+NextTalk is a next-generation, real-time audio discussion platform designed to facilitate live audio conversations, drawing inspiration from Twitter Spaces while enhancing the experience with AI-driven features and multimedia integrations.
+
+## Features
+
+- **Real-time Audio Discussions**: Host and join live audio conversations
+- **Room Management**: Create, browse, and join discussion rooms
+- **User Authentication**: Secure authentication powered by Clerk
+- **Theme Customization**: Choose between different UI themes
+- **Responsive Design**: Mobile-first approach ensuring great experience on all devices
+- **Real-time Updates**: Powered by Convex database for instant data synchronization
+
+## Tech Stack
+
+### Frontend
+- **Next.js v15** with App Router
+- **TypeScript**
+- **Tailwind CSS** for styling
+- **Shadcn UI** for component library
+- **React Hook Form** for form handling
+- **Zod** for validation
+- **Sonner** for toast notifications
+
+### Backend
+- **Convex** for real-time database, authentication, and object storage
+- **Next.js API Routes** for server-side logic
+
+### Authentication
+- **Clerk** for user authentication and management
+
+### State Management
+- **React Context** for global state
+- **Convex React** for real-time data synchronization
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18+ or Bun
+- npm, yarn, pnpm, or bun package manager
+- Convex account for the backend
+- Clerk account for authentication
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Environment Setup
+Create a `.env.local` file in the root directory with the following variables:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Future Roadmap
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+NextTalk is being developed in a three-phase approach:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Essential MVP**
+   - Core audio rooms
+   - Basic user interactions
+   - Authentication
 
-## Learn More
+2. **Polished Features**
+   - AI-driven enhancements
+   - Real-time translations
+   - Session summaries
+   - Enhanced multimedia capabilities
 
-To learn more about Next.js, take a look at the following resources:
+3. **Commercial Features**
+   - Monetization options
+   - Advanced AI integrations
+   - Experimental features
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is licensed under the [MIT License](LICENSE).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Installation
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/yourusername/nextalk.git
+   cd nextalk
+   ```
+
+2. Install dependencies
+   ```bash
+   npm install
+   # or
+   yarn
+   # or
+   pnpm install
+   # or
+   bun install
+   ```
+
+3. Start the development server
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   # or
+   bun dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Convex Setup
+
+1. Start the Convex development server
+   ```bash
+   npx convex dev
+   ```
+
+2. This will start a local Convex development server and prompt you to log in or create an account if needed.
+
+## Project Structure
