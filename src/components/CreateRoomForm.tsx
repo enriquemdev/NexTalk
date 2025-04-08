@@ -26,7 +26,10 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const formSchema = z.object({
-  name: z.string().min(1, "Room name is required").max(50, "Room name is too long"),
+  name: z
+    .string()
+    .min(1, "Room name is required")
+    .max(50, "Room name is too long"),
   description: z.string().max(200, "Description is too long").optional(),
 });
 
@@ -53,9 +56,9 @@ export function CreateRoomForm() {
         description: data.description,
         userId: "placeholder-user-id",
       });
-      
+
       toast.success("Room created successfully!");
-      
+
       setOpen(false);
       form.reset();
       router.push(`/room/${roomId}`);
@@ -68,7 +71,9 @@ export function CreateRoomForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg">Create Room</Button>
+        <Button variant="default" className="rounded-md">
+          Create Room
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -121,4 +126,4 @@ export function CreateRoomForm() {
       </DialogContent>
     </Dialog>
   );
-} 
+}
