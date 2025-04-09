@@ -303,4 +303,17 @@ Implementation Details:
 2. This fixed the error: "You're importing a component that needs useState. This React hook only works in a client component."
 3. Ensures the component is properly rendered on the client side where React hooks are available
 
-Purpose: This fix resolves a critical build error that was preventing the application from compiling and running properly, ensuring the login functionality works as expected. 
+Purpose: This fix resolves a critical build error that was preventing the application from compiling and running properly, ensuring the login functionality works as expected.
+
+Date: 2024-06-19
+
+FIX: HTML Nesting Error in DebugConvex Component
+
+Description: Fixed a hydration error caused by invalid HTML nesting in the DebugConvex component.
+
+Implementation Details:
+1. Fixed the invalid HTML structure where an ordered list (<ol>) was nested inside a paragraph (<p>) tag
+2. Moved the <ol> element outside of the <p> element while maintaining the same styling
+3. Added text styling to the <ol> element to maintain visual consistency
+
+Purpose: This fix resolves a React hydration error that was causing display issues and console errors. HTML specifications don't allow block elements like <ol> to be nested inside <p> tags. 
