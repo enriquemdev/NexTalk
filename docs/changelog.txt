@@ -2,6 +2,81 @@ CHANGELOG
 
 Date: 2024-04-09
 
+FEATURE: Live Audio Streaming in Rooms
+
+Description: Implemented live audio streaming functionality for real-time audio discussions in rooms.
+
+Implementation Details:
+1. Room Page Implementation:
+   - Created a detailed room page with participant list and audio controls
+   - Added join/leave room functionality with proper state management
+   - Implemented mute/unmute controls for audio streams
+
+2. WebRTC Integration:
+   - Added WebRTC peer connection setup for real-time audio streaming
+   - Implemented audio track handling between participants
+   - Set up STUN servers for NAT traversal
+   - Added hidden audio elements for remote stream playback
+
+3. Backend Support:
+   - Added Convex functions for room participants management
+   - Implemented getParticipants query to fetch room participants
+   - Added leaveRoom mutation for handling participant departure
+   - Created getMultiple function to efficiently fetch multiple users at once
+
+Purpose: This implementation enables the core audio communication functionality that is essential for NextTalk, allowing users to enter rooms and listen to other participants in real-time.
+
+Date: 2024-04-09
+
+FIX: Sign-In Redirect to 404 Page Issue
+
+Description: Fixed an issue where clicking the sign-in button would redirect users to a 404 page rather than completing the authentication flow.
+
+Implementation Details:
+1. Updated OAuth Callback Configuration:
+   - Modified the login form to use absolute URLs with window.location.origin for redirect URLs
+   - Ensured the redirectUrl parameter includes the full domain for proper OAuth callback handling
+
+2. Middleware Configuration:
+   - Updated the middleware.ts file to properly handle the SSO callback routes
+   - Added explicit matcher patterns for authentication-related routes
+   - Simplified the clerkMiddleware implementation for better compatibility
+
+3. Clerk Configuration:
+   - Verified the proper connection between Clerk and Convex via convex.json and auth.config.js
+   - Ensured the convex JWT template matches the applicationID in the config
+
+Purpose: This fix ensures users can successfully sign in using OAuth providers without encountering 404 errors, improving the authentication experience and reducing user friction.
+
+Date: 2024-04-09
+
+FIX: Authentication Sign-In Issues
+
+Description: Fixed issues preventing users from signing in to the application with Clerk authentication.
+
+Implementation Details:
+1. Login Component Updates:
+   - Enhanced the LoginForm component to properly integrate with Clerk OAuth providers
+   - Added proper button handlers for Google and Apple sign-in
+   - Added loading states to prevent multiple sign-in attempts
+
+2. SSO Callback Implementation:
+   - Created the SSO callback page for handling OAuth redirects
+   - Added AuthenticateWithRedirectCallback component for proper authentication flow
+
+3. Authentication Configuration:
+   - Updated middleware.ts to correctly handle public routes
+   - Created convex.json with proper authInfo configuration
+   - Verified Clerk domain in auth.config.js matches environment settings
+
+4. Debugging:
+   - Added DebugConvex component to the login form and home page
+   - Added proper error handling for authentication issues
+
+Purpose: These changes resolve critical authentication issues preventing users from signing in to the application, ensuring proper integration between Clerk and Convex for user authentication.
+
+Date: 2024-04-09
+
 FIX: Authentication Synchronization with Convex
 
 Description: Fixed an issue where users authenticated with Clerk were not being properly synchronized with the Convex database.
@@ -188,4 +263,44 @@ Implementation Details:
    - @radix-ui/react-toast
    - class-variance-authority
 
-Purpose: This implementation provides a consistent and accessible way to show notifications and feedback across the application. 
+Purpose: This implementation provides a consistent and accessible way to show notifications and feedback across the application.
+
+Date: 2024-06-19
+
+ADD: User Logout Functionality
+
+Description: Added the ability for users to log out of the application.
+
+Implementation Details:
+1. Added Clerk's UserButton component to the main navigation header
+2. Configured the UserButton with an afterSignOutUrl property to redirect users to the homepage after logout
+3. Placed the button next to the existing ThemeToggle for a clean user interface
+
+Purpose: This change adds an essential user experience feature, allowing users to securely log out of their accounts when needed, improving the authentication flow of the application.
+
+Date: 2024-06-19
+
+FIX: Sign-In Page 404 Error
+
+Description: Fixed an issue where accessing the /sign-in route would result in a 404 error.
+
+Implementation Details:
+1. Created a new sign-in page at src/app/(auth)/sign-in/page.tsx
+2. Reused the existing LoginForm component for authentication
+3. Added proper routing with Next.js Link component for navigation
+4. Ensured the page matches the design of the existing login page
+
+Purpose: This fix ensures users can access the sign-in page directly through the /sign-in URL, improving the authentication flow and fixing broken links throughout the application.
+
+Date: 2024-06-19
+
+FIX: Login Form Build Error
+
+Description: Fixed a build error in the login-form.tsx component by adding the "use client" directive.
+
+Implementation Details:
+1. Added "use client" directive at the top of the login-form.tsx file
+2. This fixed the error: "You're importing a component that needs useState. This React hook only works in a client component."
+3. Ensures the component is properly rendered on the client side where React hooks are available
+
+Purpose: This fix resolves a critical build error that was preventing the application from compiling and running properly, ensuring the login functionality works as expected. 

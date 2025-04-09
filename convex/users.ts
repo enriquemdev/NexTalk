@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Doc, Id } from "./_generated/dataModel";
 
 /**
  * Create or update a user when they log in
@@ -245,5 +246,40 @@ export const getFollowing = query({
     );
     
     return following.filter(Boolean); // Filter out null values
+  },
+});
+
+/**
+ * Get multiple users by their IDs
+ */
+export const getMultiple = query({
+  args: { 
+    userIds: v.array(v.id("users")) 
+  },
+  returns: v.array(
+    v.union(
+      v.object({
+        _id: v.id("users"),
+        _creationTime: v.number(),
+        name: v.optional(v.string()),
+        email: v.optional(v.string()),
+        image: v.optional(v.string()),
+        bio: v.optional(v.string()),
+        lastSeen: v.optional(v.number()),
+        isOnline: v.optional(v.boolean()),
+        createdAt: v.number(),
+        tokenIdentifier: v.string(),
+      }),
+      v.null()
+    )
+  ),
+  handler: async (ctx, args) => {
+    const users = await Promise.all(
+      args.userIds.map(async (userId) => {
+        return await ctx.db.get(userId);
+      })
+    );
+    
+    return users;
   },
 }); 

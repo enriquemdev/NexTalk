@@ -6,6 +6,7 @@ import { UpcomingRoomsSection } from "@/components/rooms/upcoming-rooms-section"
 import { RecentRecordingsSection } from "@/components/rooms/recent-recordings-section";
 import { UserProfileCard } from "@/components/user/user-profile-card";
 import { FeaturedRoomsBanner } from "@/components/rooms/featured-rooms-banner";
+import { DebugConvex } from "@/components/debug-convex";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
           <LiveRoomsSection />
           <UpcomingRoomsSection />
           <RecentRecordingsSection />
+          <DebugConvex />
         </div>
         <div className="space-y-4">
           <UserProfileCard />

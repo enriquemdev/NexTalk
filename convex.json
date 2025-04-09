@@ -1,0 +1,6 @@
+{
+  "project": "nextalk",
+  "team": "arturo-mejia",
+  "functions": "./convex/",
+  "authInfo": ["./convex/auth.config.js"]
+} 

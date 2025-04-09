@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkProvider, UserButton } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/providers/convex-client-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -42,6 +42,7 @@ export default function RootLayout({
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <ThemeToggle />
+                          <UserButton afterSignOutUrl="/" />
                         </div>
                       </div>
                     </div>

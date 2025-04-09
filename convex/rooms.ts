@@ -377,102 +377,63 @@ export const joinRoom = mutation({
 });
 
 /**
- * Leave a room
+ * Get room participants
  */
-export const leaveRoom = mutation({
-  args: {
-    roomId: v.id("rooms"),
-    userId: v.id("users"),
-  },
+export const getParticipants = query({
+  args: { roomId: v.id("rooms") },
+  returns: v.array(
+    v.object({
+      _id: v.id("roomParticipants"),
+      _creationTime: v.number(),
+      roomId: v.id("rooms"),
+      userId: v.id("users"),
+      role: v.string(),
+      joinedAt: v.number(),
+      leftAt: v.optional(v.number()),
+      isMuted: v.boolean(),
+      hasRaisedHand: v.optional(v.boolean()),
+    })
+  ),
   handler: async (ctx, args) => {
-    // Find the participant entry
-    const participant = await ctx.db
+    const participants = await ctx.db
       .query("roomParticipants")
-      .withIndex("by_room_user", (q) =>
-        q.eq("roomId", args.roomId).eq("userId", args.userId)
-      )
-      .filter((q) => q.eq(q.field("leftAt"), undefined))
-      .first();
+      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
+      .collect();
     
-    if (!participant) {
-      throw new Error("User is not in this room");
-    }
-    
-    const now = Date.now();
-    
-    // Mark participant as having left
-    await ctx.db.patch(participant._id, {
-      leftAt: now,
-    });
-    
-    // Update room participant count
-    const room = await ctx.db.get(args.roomId);
-    if (room) {
-      const currentCount = room.participantCount ?? 0;
-      const newCount = Math.max(0, currentCount - 1);
-      
-      await ctx.db.patch(args.roomId, {
-        participantCount: newCount,
-      });
-      
-      // If the user is the host and there are no more participants, end the room
-      if (participant.role === "host" && newCount === 0) {
-        await ctx.db.patch(args.roomId, {
-          status: "ended",
-          endedAt: now,
-        });
-        
-        // End any active recordings
-        const recordings = await ctx.db
-          .query("recordings")
-          .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
-          .filter((q) => q.eq(q.field("status"), "recording"))
-          .collect();
-        
-        for (const recording of recordings) {
-          await ctx.db.patch(recording._id, {
-            endedAt: now,
-            status: "processing",
-          });
-        }
-      }
-    }
-    
-    return true;
+    return participants;
   },
 });
 
 /**
- * Get all participants in a room
+ * Leave a room
  */
-export const getParticipants = query({
+export const leaveRoom = mutation({
   args: {
-    roomId: v.id("rooms"),
+    participantId: v.id("roomParticipants"),
   },
   handler: async (ctx, args) => {
-    // Get all participants who haven't left
-    const participants = await ctx.db
-      .query("roomParticipants")
-      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
-      .filter((q) => q.eq(q.field("leftAt"), undefined))
-      .collect();
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) {
+      throw new Error("Participant not found");
+    }
     
-    // Fetch user details for each participant
-    const userIds = participants.map((p) => p.userId);
-    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
-    
-    // Combine participant info with user details
-    return participants.map((participant, index) => {
-      const user = users[index];
-      return {
-        participant,
-        user: user ? { 
-          _id: user._id,
-          name: user.name,
-          image: user.image,
-        } : null,
-      };
+    // Mark the participant as having left
+    await ctx.db.patch(args.participantId, {
+      leftAt: Date.now(),
     });
+    
+    // Update the room's participant count
+    const room = await ctx.db.get(participant.roomId);
+    if (room) {
+      const currentCount = room.participantCount ?? 0;
+      if (currentCount > 0) {
+        await ctx.db.patch(participant.roomId, {
+          participantCount: currentCount - 1,
+        });
+      }
+    }
+    
+    return args.participantId;
   },
 });
 
