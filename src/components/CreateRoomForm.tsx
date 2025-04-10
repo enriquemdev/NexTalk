@@ -24,6 +24,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const formSchema = z.object({
   name: z
@@ -39,6 +40,7 @@ export function CreateRoomForm() {
   const [open, setOpen] = useState(false);
   const createRoom = useMutation(api.rooms.create);
   const router = useRouter();
+  const { userId } = useCurrentUser();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -50,11 +52,15 @@ export function CreateRoomForm() {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      // TODO: Replace with actual user ID from auth
+      if (!userId) {
+        toast.error("You must be logged in to create a room");
+        return;
+      }
+
       const roomId = await createRoom({
         name: data.name,
         description: data.description,
-        userId: "placeholder-user-id",
+        userId: userId,
       });
 
       toast.success("Room created successfully!");

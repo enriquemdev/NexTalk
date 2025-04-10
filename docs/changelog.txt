@@ -358,4 +358,43 @@ Implementation Details:
 4. Added automatic stream connection establishment when new users join a room
 5. Implemented real-time audio streaming with proper muting functionality
 
-Purpose: This feature implements a critical component of the audio room functionality, allowing users to hear each other in real-time when they join the same room. It establishes direct peer-to-peer connections for high-quality, low-latency audio communication. 
+Purpose: This feature implements a critical component of the audio room functionality, allowing users to hear each other in real-time when they join the same room. It establishes direct peer-to-peer connections for high-quality, low-latency audio communication.
+
+Date: 2024-06-20
+
+FIX: CreateRoomForm User ID Issue
+
+Description: Fixed a type error in CreateRoomForm where a placeholder string was incorrectly used instead of a proper Convex user ID.
+
+Implementation Details:
+1. Imported and utilized the useCurrentUser hook to get the authenticated user's ID
+2. Added validation to check if user is logged in before creating a room
+3. Replaced hardcoded placeholder with actual user ID to satisfy the TypeScript type requirements
+
+Purpose: This fix resolves a build error where TypeScript was rejecting the string value for a field that requires a proper Convex ID type, ensuring type safety throughout the application.
+
+Date: 2024-06-20
+
+FIX: Room Card TypeScript Error
+
+Description: Fixed a TypeScript error in the RoomCard component where the creator object was being improperly typed.
+
+Implementation Details:
+1. Updated the User interface to include additional properties that match the Convex user document structure
+2. Added proper type conversion for the creator object returned from the Convex query
+3. Created a formattedCreator variable that ensures the object passed to UserAvatar is always of type User | null
+
+Purpose: This fix resolves a TypeScript build error by ensuring proper type compatibility between the Convex user document and the UserAvatar component's expected props, maintaining type safety throughout the application.
+
+Date: 2024-06-20
+
+FIX: Theme Provider TypeScript Error
+
+Description: Fixed a TypeScript error in the ThemeProvider component where the imported types were causing build failures.
+
+Implementation Details:
+1. Created a custom ThemeProviderProps type definition that includes all necessary properties
+2. Removed the dependency on the external type import from "next-themes/dist/types"
+3. Used type assertion to resolve compatibility issues between the custom type and the next-themes library
+
+Purpose: This fix resolves a TypeScript build error by ensuring compatibility between our application's types and the next-themes library without relying on external type definitions that might not be available. 

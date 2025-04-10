@@ -24,6 +24,8 @@ interface RoomCardProps {
 interface User {
   name?: string;
   _id: Id<"users">;
+  image?: string;
+  tokenIdentifier?: string;
 }
 
 // Simple User Avatar component
@@ -45,6 +47,15 @@ export function RoomCard({ room }: RoomCardProps) {
   
   // Get current participant count
   const participantCount = room.participantCount || 0;
+
+  // Format creator as User type or null
+  const formattedCreator: User | null = creator 
+    ? {
+        _id: creator._id,
+        name: creator.name,
+        image: creator.image,
+      } 
+    : null;
 
   // Calculate time displayed for the room
   const getTimeDisplay = () => {
@@ -94,7 +105,7 @@ export function RoomCard({ room }: RoomCardProps) {
           {/* Host Info */}
           <div className="flex items-center text-sm text-muted-foreground">
             <UserAvatar 
-              user={creator} 
+              user={formattedCreator} 
               className="h-5 w-5 mr-2"
             />
             <span>Hosted by {creator?.name || "Unknown"}</span>

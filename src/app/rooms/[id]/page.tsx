@@ -192,8 +192,8 @@ export default function RoomPage() {
   };
   
   // Create a peer connection for a participant
-  const createPeerConnection = (participantUserId: Id<"users">) => {
-    if (!userId || !localStream) return null;
+  const createPeerConnection = (participantUserId: Id<"users">): RTCPeerConnection | undefined => {
+    if (!userId || !localStream) return undefined;
     
     console.log(`Creating peer connection for participant: ${participantUserId}`);
     
