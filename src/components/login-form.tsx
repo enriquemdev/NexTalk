@@ -35,17 +35,17 @@ export function LoginForm({
     }
   };
 
-  const signInWithApple = async () => {
+  const signInWithFacebook = async () => {
     if (!isLoaded) return;
     try {
       setIsLoading(true);
       await signIn.authenticateWithRedirect({
-        strategy: "oauth_apple",
+        strategy: "oauth_facebook",
         redirectUrl: window.location.origin + "/sso-callback",
         redirectUrlComplete: "/"
       });
     } catch (error) {
-      console.error("Error signing in with Apple:", error);
+      console.error("Error signing in with Facebook:", error);
       setIsLoading(false);
     }
   };
@@ -56,27 +56,13 @@ export function LoginForm({
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome to NexTalk</CardTitle>
           <CardDescription>
-            Login with your Google, GitHub or X account
+            Login with your Google or Facebook account
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form>
             <div className="grid gap-6">
               <div className="flex flex-col gap-4">
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={signInWithApple}
-                  disabled={isLoading || !isLoaded}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  {isLoading ? "Loading..." : "Login with Apple"}
-                </Button>
                 <Button 
                   variant="outline" 
                   className="w-full"
@@ -90,6 +76,20 @@ export function LoginForm({
                     />
                   </svg>
                   {isLoading ? "Loading..." : "Login with Google"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={signInWithFacebook}
+                  disabled={isLoading || !isLoaded}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path
+                      d="M20.007 3H3.993A.993.993 0 003 3.993v16.014c0 .549.444.993.993.993h8.628v-6.96h-2.343v-2.725h2.343V9.31c0-2.325 1.42-3.59 3.494-3.59.994 0 1.848.074 2.096.107v2.43h-1.438c-1.128 0-1.346.537-1.346 1.324v1.734h2.69l-.35 2.725h-2.34V21h4.57a.993.993 0 00.993-.993V3.993A.993.993 0 0020.007 3z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  {isLoading ? "Loading..." : "Login with Facebook"}
                 </Button>
               </div>
             </div>

@@ -316,4 +316,31 @@ Implementation Details:
 2. Moved the <ol> element outside of the <p> element while maintaining the same styling
 3. Added text styling to the <ol> element to maintain visual consistency
 
-Purpose: This fix resolves a React hydration error that was causing display issues and console errors. HTML specifications don't allow block elements like <ol> to be nested inside <p> tags. 
+Purpose: This fix resolves a React hydration error that was causing display issues and console errors. HTML specifications don't allow block elements like <ol> to be nested inside <p> tags.
+
+Date: 2024-06-19
+
+ADD: Facebook Authentication Option
+
+Description: Added Facebook as a social login option alongside Google and Apple.
+
+Implementation Details:
+1. Added a Facebook login button to the login form component
+2. Implemented signInWithFacebook handler function that uses Clerk's authenticateWithRedirect method
+3. Added Facebook logo icon for the login button
+4. Updated the login form description to reflect the available login options
+
+Purpose: This enhancement provides users with an additional authentication option, allowing them to use their Facebook accounts for sign-in. This expands the app's accessibility and gives users more flexibility in how they authenticate.
+
+Date: 2024-06-19
+
+UPDATE: Removed Apple Authentication Option
+
+Description: Removed Apple as a social login option, keeping only Google and Facebook authentication.
+
+Implementation Details:
+1. Removed the Apple login button from the login form component
+2. Removed the signInWithApple handler function
+3. Updated the login form description to reflect the available login options
+
+Purpose: This change simplifies the authentication options based on user requirements, focusing on the most commonly used social login providers. 
