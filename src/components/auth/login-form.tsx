@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { useSignIn } from "@clerk/nextjs";
 import { useState } from "react";
-import { DebugConvex } from "./debug-convex";
+// import { DebugConvex } from "./debug-convex";
 
 export function LoginForm({
   className,
@@ -96,7 +96,7 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
-      <DebugConvex />
+      {/* <DebugConvex /> */}
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
         By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
         and <a href="#">Privacy Policy</a>.

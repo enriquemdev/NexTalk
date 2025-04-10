@@ -1,5 +1,17 @@
 CHANGELOG
 
+Date: 2024-08-20
+
+FIX: Sign-In Page Import Error
+
+Description: Fixed a module not found error in the sign-in page caused by an incorrect import path.
+
+Implementation Details:
+1. Updated the import path in src/app/(auth)/sign-in/page.tsx to correctly point to the LoginForm component
+2. Changed from '@/components/login-form' to '@/components/auth/login-form'
+
+Purpose: This fix resolves the build error "Module not found: Can't resolve '@/components/login-form'" that was preventing users from accessing the sign-in page.
+
 Date: 2023-08-17
 
 FEATURE: Room Management Enhancements - Leave and Delete Functionality
