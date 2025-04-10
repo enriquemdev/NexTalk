@@ -16,7 +16,13 @@ export function CreateVideoRoomButton() {
 
   const handleCreateRoom = async () => {
     // Validate room name
-    const finalRoomName = roomName.trim() || randomString(8);
+    let finalRoomName = roomName.trim() || randomString(8);
+    
+    // Ensure the room name is valid
+    if (finalRoomName === 'undefined') {
+      finalRoomName = randomString(8);
+    }
+    
     setIsCreating(true);
     
     try {

@@ -23,6 +23,15 @@ export default function VideoRoom(props: {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Validate room name
+  useEffect(() => {
+    if (!roomName || roomName === 'undefined') {
+      setError('Invalid room name. Please go back and try creating a new room.');
+      setIsLoading(false);
+      return;
+    }
+  }, [roomName]);
+  
   // Process parameters
   const region = typeof searchParams.region === 'string' ? searchParams.region : undefined;
   
@@ -39,6 +48,8 @@ export default function VideoRoom(props: {
 
   // Check for LiveKit server configuration
   useEffect(() => {
+    if (error) return; // Skip if there's already an error
+    
     setIsLoading(true);
     // Add a simple check to ensure environment is properly configured
     fetch('/api/connection-details?check=true')
@@ -56,7 +67,7 @@ export default function VideoRoom(props: {
         setError('Could not connect to video service. Please try again later.');
         setIsLoading(false);
       });
-  }, []);
+  }, [error]);
 
   if (isLoading) {
     return (

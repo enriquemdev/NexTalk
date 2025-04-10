@@ -37,25 +37,36 @@ function createParticipantToken(
     console.error('LIVEKIT_API_KEY or LIVEKIT_API_SECRET is not defined');
     throw new Error('LiveKit API credentials are not configured properly');
   }
-
-  const at = new AccessToken(API_KEY, API_SECRET, {
-    identity,
-    name,
-    metadata,
-  });
-  at.ttl = '5m';
-  const grant: VideoGrant = {
-    room: roomName,
-    roomJoin: true,
-    canPublish: true,
-    canPublishData: true,
-    canSubscribe: true,
-  };
-  at.addGrant(grant);
   
-  const token = at.toJwt();
-  console.log('Generated token successfully for room:', roomName);
-  return token;
+  // Don't generate tokens for invalid room names
+  if (!roomName || roomName === 'undefined') {
+    console.error('Invalid room name provided:', roomName);
+    throw new Error('Invalid room name provided');
+  }
+
+  try {
+    const at = new AccessToken(API_KEY, API_SECRET, {
+      identity,
+      name,
+      metadata,
+    });
+    at.ttl = '5m';
+    const grant: VideoGrant = {
+      room: roomName,
+      roomJoin: true,
+      canPublish: true,
+      canPublishData: true,
+      canSubscribe: true,
+    };
+    at.addGrant(grant);
+    
+    const token = at.toJwt();
+    console.log('Generated token successfully for room:', roomName);
+    return token;
+  } catch (error) {
+    console.error('Error generating LiveKit token:', error);
+    throw new Error(`Failed to generate LiveKit token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 // Get the LiveKit server URL for a given region
@@ -80,6 +91,8 @@ export async function GET(request: NextRequest) {
     const region = request.nextUrl.searchParams.get('region');
     const isConfigCheck = request.nextUrl.searchParams.get('check') === 'true';
     
+    console.log('Connection details request:', { roomName, participantName, region });
+    
     // If this is just a configuration check, return a simplified response
     if (isConfigCheck) {
       if (!API_KEY || !API_SECRET || !LIVEKIT_URL) {
@@ -102,12 +115,16 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    console.log('Connection details request:', { roomName, participantName, region });
-    
     if (!API_KEY || !API_SECRET || !LIVEKIT_URL) {
       console.error('LiveKit environment variables are not set correctly');
       console.error('API_KEY:', !!API_KEY, 'API_SECRET:', !!API_SECRET, 'LIVEKIT_URL:', LIVEKIT_URL);
       return new NextResponse('Server configuration error: LiveKit credentials not properly configured', { status: 500 });
+    }
+    
+    // Check for valid room name
+    if (!roomName || roomName === 'undefined') {
+      console.error('Invalid room name provided:', roomName);
+      return new NextResponse('Invalid room name: must not be empty or "undefined"', { status: 400 });
     }
     
     // Check LiveKit URL
@@ -119,9 +136,6 @@ export async function GET(request: NextRequest) {
       return new NextResponse('Invalid LiveKit server configuration', { status: 500 });
     }
 
-    if (typeof roomName !== 'string' || !roomName) {
-      return new NextResponse('Missing required query parameter: roomName', { status: 400 });
-    }
     if (!participantName) {
       return new NextResponse('Missing required query parameter: participantName', { status: 400 });
     }
@@ -140,8 +154,8 @@ export async function GET(request: NextRequest) {
       roomName
     );
 
-    // Check token is valid - removed length check as it's a string not a promise
-    if (!participantToken) {
+    // Check token is valid
+    if (!participantToken || typeof participantToken !== 'string') {
       console.error('Failed to generate valid token');
       return new NextResponse('Failed to generate connection token', { status: 500 });
     }

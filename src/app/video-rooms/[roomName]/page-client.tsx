@@ -103,6 +103,12 @@ export function PageClientImpl(props: {
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
     try {
       setPreJoinChoices(values);
+      
+      // Validate the room name before sending the request
+      if (!props.roomName || props.roomName === 'undefined') {
+        throw new Error('Invalid room name. Please provide a valid room name.');
+      }
+      
       const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
       url.searchParams.append('roomName', props.roomName);
       url.searchParams.append('participantName', values.username || 'Anonymous');
@@ -121,6 +127,12 @@ export function PageClientImpl(props: {
       
       const connectionDetailsData = await connectionDetailsResp.json();
       console.log('Connection details received successfully');
+      
+      // Validate the response data
+      if (!connectionDetailsData.serverUrl) {
+        console.error('Missing server URL in connection details:', connectionDetailsData);
+        throw new Error('Invalid server configuration');
+      }
       
       // Validate the token
       if (!connectionDetailsData.participantToken || typeof connectionDetailsData.participantToken !== 'string') {
