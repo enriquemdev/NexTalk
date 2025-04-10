@@ -1,5 +1,3 @@
-"use client";
-
 import { CreateRoomButton } from "@/components/rooms/create-room-button";
 import { LiveRoomsSection } from "@/components/rooms/live-rooms-section";
 import { UpcomingRoomsSection } from "@/components/rooms/upcoming-rooms-section";
