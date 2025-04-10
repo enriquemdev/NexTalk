@@ -1,19 +1,23 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import { useState, useEffect, useMemo } from "react";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { MicIcon, MicOffIcon, Users2Icon } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { Id, Doc } from "convex/_generated/dataModel";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { LiveKitAudioRoom } from "@/components/rooms/livekit-room";
+import { MicIcon, MicOffIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { formatDistanceToNow } from "date-fns";
+import { Users2Icon } from "lucide-react";
 import { Mic, MicOff } from "lucide-react";
 
 export default function RoomPage() {
@@ -177,20 +181,6 @@ export default function RoomPage() {
     }
   };
   
-  // Toggle mute status
-  const handleToggleMute = async () => {
-    if (!myParticipantId) return;
-    
-    try {
-      await toggleMuteMutation({
-        participantId: myParticipantId,
-        isMuted: !myParticipant?.isMuted,
-      });
-    } catch (error) {
-      console.error("Failed to toggle mute:", error);
-    }
-  };
-  
   // Clean up when leaving the page
   useEffect(() => {
     return () => {
@@ -212,6 +202,13 @@ export default function RoomPage() {
       toast({ title: 'Microphone muted' });
     } else {
       toast({ title: 'Microphone unmuted' });
+    }
+  };
+  
+  // Add a LiveKit connection handler
+  const handleMicrophoneStatusChange = (muted: boolean) => {
+    if (isMicMuted !== muted) {
+      setIsMicMuted(muted);
     }
   };
   
@@ -319,7 +316,7 @@ export default function RoomPage() {
             roomId={roomId} 
             participantName={user?.name || undefined}
             isMuted={isMicMuted}
-            onMicrophoneStatusChange={setIsMicMuted}
+            onMicrophoneStatusChange={handleMicrophoneStatusChange}
           />
         </div>
       )}

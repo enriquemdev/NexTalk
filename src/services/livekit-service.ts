@@ -7,10 +7,13 @@
  */
 export async function getLiveKitToken(
   roomId: string, 
-  name?: string, 
+  name?: string,
   metadata?: Record<string, unknown>
 ): Promise<string> {
   try {
+    // Log that we're requesting a token - helpful for debugging
+    console.log(`Requesting LiveKit token for room: ${roomId}, user: ${name || 'anonymous'}`);
+    
     const response = await fetch('/api/livekit/token', {
       method: 'POST',
       headers: {
@@ -19,16 +22,27 @@ export async function getLiveKitToken(
       body: JSON.stringify({
         roomId,
         name,
-        metadata: metadata ? JSON.stringify(metadata) : undefined,
+        metadata,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to get LiveKit token');
+      const errorData = await response.json();
+      console.error('LiveKit token error response:', errorData);
+      throw new Error(errorData.error || 'Failed to get LiveKit token');
     }
 
     const data = await response.json();
+    
+    // Log success, but don't log the actual token for security reasons
+    console.log('Successfully received LiveKit token');
+    
+    // Check if token is valid before returning
+    if (!data.token || typeof data.token !== 'string') {
+      console.error('Invalid token format received:', data);
+      throw new Error('Invalid token format received');
+    }
+    
     return data.token;
   } catch (error) {
     console.error('Error getting LiveKit token:', error);

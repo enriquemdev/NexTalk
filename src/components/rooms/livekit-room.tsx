@@ -27,6 +27,7 @@ export function LiveKitAudioRoom({
 }: LiveKitRoomProps) {
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(true);
   
   const liveKitRoomName = createLiveKitRoomName(roomId);
   
@@ -34,11 +35,15 @@ export function LiveKitAudioRoom({
   useEffect(() => {
     const fetchToken = async () => {
       try {
+        setIsConnecting(true);
         const roomToken = await getLiveKitToken(liveKitRoomName, participantName);
+        console.log('Token received for room:', liveKitRoomName);
         setToken(roomToken);
+        setIsConnecting(false);
       } catch (err) {
         console.error("Error getting token:", err);
         setError("Failed to connect to audio room");
+        setIsConnecting(false);
       }
     };
     
@@ -49,16 +54,21 @@ export function LiveKitAudioRoom({
     return <div className="text-red-500 p-4">{error}</div>;
   }
   
-  if (!token) {
+  if (isConnecting || !token) {
     return <div className="animate-pulse p-4">Connecting to audio room...</div>;
   }
   
   return (
     <LiveKitRoom
       token={token}
-      serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || "wss://nextalk-nzthcprn.livekit.cloud"}
+      serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
       audio={true}
       video={false}
+      connect={true}
+      onError={(error) => {
+        console.error("LiveKit connection error:", error);
+        setError("Error connecting to audio room");
+      }}
     >
       {/* This renders the audio of other participants */}
       <RoomAudioRenderer />

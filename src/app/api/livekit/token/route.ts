@@ -2,6 +2,9 @@ import { AccessToken } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 
+// Do not cache endpoint result
+export const revalidate = 0;
+
 export async function POST(req: NextRequest) {
   try {
     // Get authentication info
@@ -14,7 +17,7 @@ export async function POST(req: NextRequest) {
     const userId = auth.userId;
     
     // Get request data
-    const { roomId, name, metadata } = await req.json();
+    const { roomId, name } = await req.json();
     
     if (!roomId) {
       return NextResponse.json({ error: 'Room ID is required' }, { status: 400 });
@@ -32,14 +35,13 @@ export async function POST(req: NextRequest) {
     }
     
     // Create token with identity set to Clerk user ID
-    const token = new AccessToken(apiKey, apiSecret, {
+    const at = new AccessToken(apiKey, apiSecret, {
       identity: userId,
       name: name || 'User',
-      metadata: metadata || JSON.stringify({ userId }),
     });
     
     // Grant permissions
-    token.addGrant({
+    at.addGrant({
       roomJoin: true,
       room: roomId,
       canPublish: true,
@@ -47,9 +49,12 @@ export async function POST(req: NextRequest) {
     });
     
     // Generate JWT token
-    const jwt = token.toJwt();
+    const token = await at.toJwt();
     
-    return NextResponse.json({ token: jwt });
+    return NextResponse.json(
+      { token },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     console.error('Error generating LiveKit token:', error);
     return NextResponse.json(
