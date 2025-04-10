@@ -38,9 +38,21 @@ export function AudioContextProvider({ children }: { children: ReactNode }) {
 
   const startLocalStream = async () => {
     try {
+      console.log("Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
         video: false,
+      });
+      
+      console.log("Microphone access granted.");
+      console.log(`Got audio stream with ${stream.getAudioTracks().length} audio tracks`);
+      
+      stream.getAudioTracks().forEach(track => {
+        console.log(`Audio track: ${track.label}, enabled: ${track.enabled}, muted: ${track.muted}`);
       });
       
       setLocalStream(stream);

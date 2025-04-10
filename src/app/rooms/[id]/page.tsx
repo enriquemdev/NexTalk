@@ -24,6 +24,21 @@ const ICE_SERVERS = {
     {
       urls: "stun:stun1.l.google.com:19302",
     },
+    {
+      urls: "stun:stun2.l.google.com:19302",
+    },
+    {
+      urls: "stun:stun3.l.google.com:19302",
+    },
+    {
+      urls: "stun:stun4.l.google.com:19302",
+    },
+    // Uncomment and add your TURN servers if available
+    // {
+    //   urls: 'turn:turn.example.com:3478',
+    //   username: 'username',
+    //   credential: 'password'
+    // }
   ],
 };
 
@@ -98,6 +113,44 @@ export default function RoomPage() {
   // Find my participant record
   const myParticipant = participants.find(p => p.userId === userId && !p.leftAt);
   
+  // Test WebRTC connectivity to ensure STUN servers are working
+  const testConnectivity = async () => {
+    try {
+      console.log("Testing WebRTC connectivity...");
+      const pc = new RTCPeerConnection(ICE_SERVERS);
+      
+      // Add connectivity event listeners
+      pc.onicecandidate = e => {
+        if (e.candidate) {
+          console.log("Test connection received ICE candidate:", e.candidate.candidate);
+        }
+      };
+      
+      pc.onicegatheringstatechange = () => {
+        console.log(`Test connection ICE gathering state: ${pc.iceGatheringState}`);
+        
+        if (pc.iceGatheringState === 'complete') {
+          console.log("ICE gathering completed - connection test successful");
+          pc.close();
+        }
+      };
+      
+      // Create a data channel to trigger ICE candidate gathering
+      pc.createDataChannel("connectivity-test");
+      
+      // Create an offer to start the ICE candidate gathering process
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
+      console.log("WebRTC connectivity test initialized");
+      
+      // We don't need to set a remote description for this test
+      // The goal is just to test ICE candidate gathering
+    } catch (error) {
+      console.error("WebRTC connectivity test failed:", error);
+    }
+  };
+
   // Join the room
   const joinRoom = async () => {
     if (!userId) {
@@ -112,8 +165,23 @@ export default function RoomPage() {
     setIsJoining(true);
     
     try {
+      // Test WebRTC connectivity first
+      await testConnectivity();
+      
       // First get microphone access
-      await startLocalStream();
+      console.log("Starting local stream...");
+      const stream = await startLocalStream();
+      console.log("Local stream started successfully");
+      
+      // Test audio track to make sure it's working
+      if (stream) {
+        const audioTracks = stream.getAudioTracks();
+        console.log(`Got ${audioTracks.length} audio tracks from local stream`);
+        
+        if (audioTracks.length === 0) {
+          throw new Error("No audio tracks found in local stream. Please check your microphone access.");
+        }
+      }
       
       // Join room in database
       const participantId = await joinRoomMutation({ roomId, userId });
@@ -200,14 +268,31 @@ export default function RoomPage() {
     // Create a new RTCPeerConnection
     const peerConnection = new RTCPeerConnection(ICE_SERVERS);
     
+    // Log connection state changes
+    peerConnection.onconnectionstatechange = () => {
+      console.log(`Connection state changed for ${participantUserId}: ${peerConnection.connectionState}`);
+    };
+    
+    // Log ICE connection state changes
+    peerConnection.oniceconnectionstatechange = () => {
+      console.log(`ICE connection state for ${participantUserId}: ${peerConnection.iceConnectionState}`);
+    };
+    
+    // Log gathering state changes
+    peerConnection.onicegatheringstatechange = () => {
+      console.log(`ICE gathering state for ${participantUserId}: ${peerConnection.iceGatheringState}`);
+    };
+    
     // Add local tracks to the connection
     localStream.getTracks().forEach(track => {
+      console.log(`Adding track to peer connection: ${track.kind}, enabled: ${track.enabled}`);
       peerConnection.addTrack(track, localStream);
     });
     
     // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log("Generated ICE candidate for peer", event.candidate);
         // Send ICE candidate to the peer through signaling
         sendSignalMutation({
           roomId,
@@ -216,6 +301,8 @@ export default function RoomPage() {
           type: "ice-candidate",
           payload: JSON.stringify(event.candidate),
         });
+      } else {
+        console.log("ICE candidate gathering complete");
       }
     };
     
@@ -223,6 +310,12 @@ export default function RoomPage() {
     peerConnection.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
         console.log(`Received remote stream from participant: ${participantUserId}`);
+        console.log(`Remote stream has ${event.streams[0].getTracks().length} tracks`);
+        
+        event.streams[0].getTracks().forEach(track => {
+          console.log(`Remote track: ${track.kind}, enabled: ${track.enabled}, muted: ${track.muted}`);
+        });
+        
         addRemoteStream(participantUserId, event.streams[0]);
       }
     };
@@ -538,17 +631,35 @@ export default function RoomPage() {
       
       {/* Remote audio elements - hidden but used for playback */}
       <div className="hidden">
-        {Array.from(remoteStreams.entries()).map(([userId, stream]) => (
-          <audio
-            key={userId}
-            autoPlay
-            ref={(element) => {
-              if (element && stream) {
-                element.srcObject = stream;
-              }
-            }}
-          />
-        ))}
+        {Array.from(remoteStreams.entries()).map(([userId, stream]) => {
+          console.log(`Rendering audio element for user ${userId}`);
+          return (
+            <audio
+              key={userId}
+              autoPlay
+              playsInline
+              controls={false}
+              muted={false}
+              ref={(element) => {
+                if (element && stream) {
+                  console.log(`Setting srcObject for audio element from user ${userId}`);
+                  // Clean up previous srcObject if any
+                  if (element.srcObject !== stream) {
+                    if (element.srcObject) {
+                      console.log('Cleaning up previous audio source');
+                    }
+                    element.srcObject = stream;
+                    
+                    // Force play
+                    element.play().catch(e => {
+                      console.error(`Error playing audio for user ${userId}:`, e);
+                    });
+                  }
+                }
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );
