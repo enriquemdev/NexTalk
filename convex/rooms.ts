@@ -42,7 +42,14 @@ export const list = query({
     
     const limit = args.limit ?? 50;
     
-    return await query.order("desc").take(limit);
+    // Exclude deleted rooms
+    return await query
+      .filter(q => q.or(
+        q.eq(q.field("isDeleted"), false),
+        q.eq(q.field("isDeleted"), undefined)
+      ))
+      .order("desc")
+      .take(limit);
   },
 });
 
@@ -106,7 +113,10 @@ export const create = mutation({
  * Get a room by ID
  */
 export const get = query({
-  args: { roomId: v.id("rooms") },
+  args: { 
+    roomId: v.id("rooms"),
+    includeDeleted: v.optional(v.boolean()) 
+  },
   returns: v.union(
     v.object({
       _id: v.id("rooms"),
@@ -121,13 +131,23 @@ export const get = query({
       endedAt: v.optional(v.number()),
       isPrivate: v.boolean(),
       isRecorded: v.boolean(),
+      isDeleted: v.optional(v.boolean()),
+      deletedAt: v.optional(v.number()),
       participantCount: v.optional(v.number()),
       peakParticipantCount: v.optional(v.number()),
     }),
     v.null()
   ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.roomId);
+    const room = await ctx.db.get(args.roomId);
+    
+    // If no room found, return null
+    if (!room) return null;
+    
+    // If room is deleted and includeDeleted is not true, return null
+    if (room.isDeleted && !args.includeDeleted) return null;
+    
+    return room;
   },
 });
 
@@ -715,6 +735,82 @@ export const respondToInvitation = mutation({
         }
       }
     }
+    
+    return true;
+  },
+});
+
+/**
+ * Delete a room (soft delete)
+ */
+export const deleteRoom = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+    
+    // Verify the user is the room creator (only creators can delete rooms)
+    if (room.createdBy !== args.userId) {
+      throw new Error("Only the room creator can delete a room");
+    }
+    
+    const now = Date.now();
+    
+    // First, mark all participants as having left the room
+    const participants = await ctx.db
+      .query("roomParticipants")
+      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
+      .filter((q) => q.eq(q.field("leftAt"), undefined))
+      .collect();
+    
+    console.log(`Removing ${participants.length} participants from room ${args.roomId}`);
+    
+    for (const participant of participants) {
+      await ctx.db.patch(participant._id, {
+        leftAt: now,
+      });
+    }
+    
+    // End any active recordings
+    const recordings = await ctx.db
+      .query("recordings")
+      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
+      .filter((q) => q.eq(q.field("status"), "recording"))
+      .collect();
+    
+    for (const recording of recordings) {
+      await ctx.db.patch(recording._id, {
+        endedAt: now,
+        status: "processing",
+      });
+    }
+    
+    // Mark all webRTC signaling messages as processed
+    const signals = await ctx.db
+      .query("webrtcSignaling")
+      .withIndex("by_room_receiver")
+      .filter(q => q.eq(q.field("roomId"), args.roomId))
+      .collect();
+    
+    for (const signal of signals) {
+      await ctx.db.patch(signal._id, {
+        processed: true,
+      });
+    }
+    
+    // Mark the room as deleted (soft delete)
+    await ctx.db.patch(args.roomId, {
+      isDeleted: true,
+      deletedAt: now,
+      status: "ended", // Ensure the room is marked as ended
+      endedAt: room.endedAt || now,
+      participantCount: 0,
+    });
     
     return true;
   },

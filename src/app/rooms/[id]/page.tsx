@@ -97,10 +97,14 @@ export default function RoomPage() {
   const toggleMuteMutation = useMutation(api.rooms.toggleMute);
   const sendSignalMutation = useMutation(api.webrtc.sendSignal);
   const markSignalProcessedMutation = useMutation(api.webrtc.markSignalProcessed);
+  const deleteRoomMutation = useMutation(api.rooms.deleteRoom);
 
   // State
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [myParticipantId, setMyParticipantId] = useState<Id<"roomParticipants"> | null>(null);
   const [peerConnections, setPeerConnections] = useState<Map<string, RTCPeerConnection>>(new Map());
 
@@ -211,6 +215,8 @@ export default function RoomPage() {
   const leaveRoom = async () => {
     if (!myParticipantId) return;
     
+    // Reset confirm state if it was open
+    setConfirmLeave(false);
     setIsLeaving(true);
     
     try {
@@ -240,6 +246,52 @@ export default function RoomPage() {
       });
     } finally {
       setIsLeaving(false);
+    }
+  };
+  
+  // Delete the room
+  const deleteRoom = async () => {
+    if (!userId || !room) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      // First, leave the room if we're in it
+      if (myParticipantId) {
+        await leaveRoomMutation({ participantId: myParticipantId });
+        
+        // Close all peer connections
+        peerConnections.forEach((pc) => {
+          pc.close();
+        });
+        setPeerConnections(new Map());
+        
+        // Stop local stream
+        stopLocalStream();
+        
+        setMyParticipantId(null);
+      }
+      
+      // Then delete the room
+      await deleteRoomMutation({ roomId, userId });
+      
+      toast({
+        title: "Room Deleted",
+        description: "The room has been deleted successfully",
+      });
+      
+      // Navigate back to home page
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Failed to delete room:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete room",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(false);
     }
   };
   
@@ -532,14 +584,48 @@ export default function RoomPage() {
               {isJoining ? "Joining..." : "Join Audio Room"}
             </Button>
           ) : (
-            <Button 
-              onClick={leaveRoom} 
-              variant="destructive" 
-              disabled={isLeaving}
-              className="px-4"
-            >
-              {isLeaving ? "Leaving..." : "Leave Room"}
-            </Button>
+            <div className="flex flex-wrap sm:flex-row gap-2 justify-end">
+              <Button 
+                onClick={leaveRoom} 
+                variant="outline" 
+                disabled={isLeaving}
+                className="px-4 hidden md:flex"
+              >
+                {isLeaving ? "Leaving..." : "Leave Room"}
+              </Button>
+              
+              {/* Only show delete button for host */}
+              {myParticipant.role === "host" && room && room.createdBy === userId && (
+                confirmDelete ? (
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => setConfirmDelete(false)} 
+                      variant="outline"
+                      className="px-3 min-h-10"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={deleteRoom} 
+                      variant="destructive" 
+                      disabled={isDeleting}
+                      className="px-3 min-h-10"
+                    >
+                      {isDeleting ? "Deleting..." : "Confirm Delete"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={() => setConfirmDelete(true)} 
+                    variant="destructive" 
+                    disabled={isDeleting}
+                    className="px-4 min-h-10"
+                  >
+                    Delete Room
+                  </Button>
+                )
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -571,6 +657,38 @@ export default function RoomPage() {
                   >
                     {isMuted ? <MicOffIcon className="w-4 h-4" /> : <MicIcon className="w-4 h-4" />}
                   </Button>
+                  
+                  {confirmLeave ? (
+                    <div className="flex gap-2 md:hidden">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setConfirmLeave(false)}
+                        className="px-3"
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={leaveRoom}
+                        disabled={isLeaving}
+                        className="px-3"
+                      >
+                        {isLeaving ? "Leaving..." : "Confirm"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setConfirmLeave(true)}
+                      disabled={isLeaving}
+                      className="ml-2 md:hidden"
+                    >
+                      Leave
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>

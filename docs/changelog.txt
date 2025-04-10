@@ -1,5 +1,41 @@
 CHANGELOG
 
+Date: 2023-08-17
+
+FEATURE: Room Management Enhancements - Leave and Delete Functionality
+
+Description: Implemented enhanced room management features, including improved room exit functionality for mobile devices and room deletion with proper cleanup.
+
+Implementation Details:
+1. Soft Delete Implementation:
+   - Modified schema to add isDeleted and deletedAt fields to rooms
+   - Implemented soft delete functionality instead of permanent deletion
+   - Added index by_deletion for efficient filtering of deleted rooms
+   - Updated room queries to exclude deleted rooms by default
+
+2. Room Deletion:
+   - Added a deleteRoom mutation in Convex backend
+   - Implemented proper cleanup of related data:
+     - Marks all participants as having left
+     - Ends active recordings
+     - Marks all WebRTC signaling messages as processed
+   - Added confirmation dialog before deletion
+   - Restricted deletion to room creators only
+
+3. Mobile Experience Improvements:
+   - Fixed leave room button on mobile devices
+   - Added confirmation dialog for leaving rooms on mobile
+   - Improved button sizing and touch targets
+   - Enhanced responsive layout for room controls
+
+4. UI Enhancements:
+   - Added "Delete Room" button for room hosts
+   - Improved button contrast and visibility
+   - Added clear confirmation steps for destructive actions
+   - Ensured consistent UI across device sizes
+
+Purpose: These enhancements improve the user experience around room management, particularly for mobile users, while ensuring data integrity during room deletion. The soft delete approach provides a safety net and allows for potential future features like room restoration.
+
 Date: 2024-04-09
 
 FEATURE: Live Audio Streaming in Rooms
