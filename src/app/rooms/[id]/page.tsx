@@ -1,18 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import React, { useEffect, useState, useMemo } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { api } from "convex/_generated/api";
+import { Id, Doc } from "convex/_generated/dataModel";
 import { LiveKitAudioRoom } from "@/components/rooms/livekit-room";
-import { MicIcon, MicOffIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -423,7 +419,7 @@ export default function RoomPage() {
                           </Badge>
                           
                           {participant.isMuted && (
-                            <MicOffIcon className="w-3 h-3 text-muted-foreground" />
+                            <MicOff className="w-3 h-3 text-muted-foreground" />
                           )}
                         </div>
                       </div>

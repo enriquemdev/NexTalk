@@ -531,4 +531,24 @@ Implementation Details:
    - Improved synchronization between UI state and actual microphone state
    - Added connection and audio status logging for debugging
 
-Purpose: This fix resolves a critical issue that prevented users from hearing each other in audio rooms, ensuring that users can now stream audio to other participants in real-time. The implementation is now more robust with better error handling and follows the patterns from the official LiveKit Meet example repository. 
+Purpose: This fix resolves a critical issue that prevented users from hearing each other in audio rooms, ensuring that users can now stream audio to other participants in real-time. The implementation is now more robust with better error handling and follows the patterns from the official LiveKit Meet example repository.
+
+Date: 2024-08-24
+
+FIX: Convex Import Path Issue in Build Process
+
+Description: Fixed an issue where the build process was failing due to incorrect import paths for Convex generated files.
+
+Implementation Details:
+1. Updated import paths across the codebase:
+   - Changed import statements from '@/convex/_generated/api' to 'convex/_generated/api'
+   - Changed import statements from '@/convex/_generated/dataModel' to 'convex/_generated/dataModel'
+   - Ensured consistent use of imports according to the tsconfig.json path mappings
+
+2. Path Configuration Review:
+   - Identified the correct path mappings in tsconfig.json:
+     - '@/*' maps to './src/*'
+     - 'convex/*' maps to './convex/*'
+   - Applied the correct path mapping consistently across the codebase
+
+Purpose: This fix resolves a critical build error that prevented the application from compiling for production. The corrected import paths ensure that the Next.js build process can properly locate and bundle the Convex generated files. 
