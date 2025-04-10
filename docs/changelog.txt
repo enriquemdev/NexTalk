@@ -585,4 +585,24 @@ Implementation Details:
    - Room sharing capabilities
    - Optional end-to-end encryption (E2EE)
 
-Purpose: This implementation significantly expands NextTalk's capabilities by adding high-quality video conferencing alongside the existing audio rooms. The video conferencing feature leverages LiveKit's proven infrastructure to provide reliable, scalable video communication with minimal latency. 
+Purpose: This implementation significantly expands NextTalk's capabilities by adding high-quality video conferencing alongside the existing audio rooms. The video conferencing feature leverages LiveKit's proven infrastructure to provide reliable, scalable video communication with minimal latency.
+
+Date: 2024-08-26
+
+FIX: Video Room Page TypeScript Errors
+
+Description: Fixed TypeScript errors in the video room page components that were preventing the Next.js build process from completing successfully.
+
+Implementation Details:
+1. Restructured the page component architecture:
+   - Created a minimal server component in page.tsx that delegates to a client component
+   - Moved component logic to a dedicated 'use client' component
+   - Used proper TypeScript type definitions compatible with Next.js 15.2.4
+   - Fixed metadata generation to work properly with the new structure
+
+2. Architecture Improvements:
+   - Separated concerns between server and client components
+   - Fixed the Next.js build error related to Promise-based params
+   - Maintained all existing functionality while fixing type errors
+
+Purpose: This fix resolves a critical build error that was preventing the deployment of the application. The error was related to Next.js 15.2.4's typings for page props and params, which now expect Promise-based fields. 
