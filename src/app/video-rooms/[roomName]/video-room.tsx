@@ -3,15 +3,6 @@
 import { useState, useEffect } from 'react';
 import { PageClientImpl } from './page-client';
 import '@livekit/components-styles';
-import { Metadata } from 'next';
-
-// Metadata function
-export function generateMetadata({ params }: { params: { roomName: string } }): Metadata {
-  return {
-    title: `${params.roomName} | NextTalk Video Room`,
-    description: `Join the ${params.roomName} video call on NextTalk.`,
-  };
-}
 
 // Main video room component
 export default function VideoRoom(props: {
@@ -19,13 +10,17 @@ export default function VideoRoom(props: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const { params, searchParams } = props;
-  const roomName = params.roomName;
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Properly decode the room name from URL
+  const roomName = params?.roomName ? decodeURIComponent(params.roomName) : '';
+  
   // Validate room name
   useEffect(() => {
-    if (!roomName || roomName === 'undefined') {
+    console.log("Rendering video room with name:", roomName);
+    
+    if (!roomName || roomName === 'undefined' || roomName === 'null') {
       setError('Invalid room name. Please go back and try creating a new room.');
       setIsLoading(false);
       return;

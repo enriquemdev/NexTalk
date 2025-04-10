@@ -66,6 +66,30 @@ export function createLiveKitRoomName(roomId: string): string {
 import { ConnectionDetails } from '@/lib/types';
 
 /**
+ * Sanitizes a room name to ensure it's valid for LiveKit
+ * @param roomName - The raw room name
+ * @returns A sanitized room name safe for use with LiveKit
+ */
+export function sanitizeRoomName(roomName: string): string {
+  if (!roomName || roomName === 'undefined' || roomName === 'null') {
+    throw new Error('Invalid room name');
+  }
+  
+  // Remove any characters that aren't alphanumeric, spaces, or hyphens
+  const sanitized = roomName
+    .replace(/[^\w\s-]/g, '')  
+    .replace(/\s+/g, '-')      // Replace spaces with hyphens
+    .toLowerCase();            // Convert to lowercase for consistency
+  
+  // If after sanitization we have nothing left, throw an error
+  if (!sanitized) {
+    throw new Error('Room name contains only invalid characters');
+  }
+  
+  return sanitized;
+}
+
+/**
  * Fetches connection details from the server
  */
 export async function getConnectionDetails(
@@ -73,22 +97,31 @@ export async function getConnectionDetails(
   participantName: string,
   region?: string
 ): Promise<ConnectionDetails> {
-  if (!roomName || roomName === 'undefined') {
+  // Validate and sanitize inputs
+  if (!roomName || roomName === 'undefined' || roomName === 'null') {
     throw new Error('Invalid room name');
   }
+  
+  // Sanitize the room name
+  const sanitizedRoomName = sanitizeRoomName(roomName);
 
   if (!participantName) {
     throw new Error('Participant name is required');
   }
+  
+  // Sanitize participant name (basic)
+  const sanitizedParticipantName = participantName.substring(0, 100).trim() || 'Anonymous';
 
   // Create the URL with parameters
   const url = new URL('/api/connection-details', window.location.origin);
-  url.searchParams.append('roomName', roomName);
-  url.searchParams.append('participantName', participantName);
+  url.searchParams.append('roomName', sanitizedRoomName);
+  url.searchParams.append('participantName', sanitizedParticipantName);
   
   if (region) {
     url.searchParams.append('region', region);
   }
+
+  console.log(`Fetching LiveKit connection details for room: ${sanitizedRoomName}`);
 
   // Fetch the connection details
   const response = await fetch(url.toString());
@@ -103,13 +136,16 @@ export async function getConnectionDetails(
   
   // Validate the response data
   if (!data.serverUrl) {
+    console.error('Invalid response data - missing serverUrl:', data);
     throw new Error('Server URL is missing in the response');
   }
   
   if (!data.participantToken || typeof data.participantToken !== 'string') {
+    console.error('Invalid response data - invalid token:', typeof data.participantToken);
     throw new Error('Invalid participant token received');
   }
   
+  console.log('Successfully received LiveKit connection details');
   return data as ConnectionDetails;
 }
 

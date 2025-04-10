@@ -104,13 +104,22 @@ export function PageClientImpl(props: {
     try {
       setPreJoinChoices(values);
       
-      // Validate the room name before sending the request
-      if (!props.roomName || props.roomName === 'undefined') {
-        throw new Error('Invalid room name. Please provide a valid room name.');
+      // Validate and sanitize the room name before sending the request
+      if (!props.roomName || props.roomName === 'undefined' || props.roomName === 'null') {
+        console.error('Invalid room name detected:', props.roomName);
+        throw new Error('Invalid room name. Please try with a different room name.');
       }
       
+      // Sanitize room name
+      const sanitizedRoomName = props.roomName.replace(/[^\w\s-]/g, '');
+      if (!sanitizedRoomName) {
+        throw new Error('Room name contains invalid characters.');
+      }
+      
+      console.log('Will connect to room:', sanitizedRoomName);
+      
       const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
-      url.searchParams.append('roomName', props.roomName);
+      url.searchParams.append('roomName', sanitizedRoomName);
       url.searchParams.append('participantName', values.username || 'Anonymous');
       if (props.region) {
         url.searchParams.append('region', props.region);

@@ -237,3 +237,7 @@ This phase introduces monetization, advanced AI, and experimental features for d
 - **Performance Tests**: Monitor load times, real-time latency, and scalability.
 - **User Testing**: Gather feedback on UI/UX, especially for mobile responsiveness.
 
+
+IMPORTANT NOTE: THERE IS A FOLDER IN THE ROOT DIR THAT IS CALLED "reference-project", THE CODE INSIDE THIS FOLDER SHOULD NOT BE MODIFIED BY ANY MEANS, BUT IT MUST BE CHECKED CAREFULLY TO SOLVE PROBLEMS AND IMPLEMENT CODE OR THIS PROJECT, AS IT IS A GOOD WORKING IMPLEMENTATION OF A NEXT JS PROJECT WORKING WITH LIVEKIT FOR VIDEO STREAMING, AND THAT MUST BE IMPLEMENTED IN NEXTALK.
+
+

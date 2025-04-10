@@ -114,5 +114,7 @@ This section outlines the integration of LiveKit for real-time audio/video strea
     - Accumulate functionality in files like migrations or seeders without removing prior implementations.
     - Example: Add new permissions or schema entries without deleting existing ones unless necessary.
 
+IMPORTANT NOTE: THERE IS A FOLDER IN THE ROOT DIR THAT IS CALLED "reference-project", THE CODE INSIDE THIS FOLDER SHOULD NOT BE MODIFIED BY ANY MEANS, BUT IT MUST BE CHECKED CAREFULLY TO SOLVE PROBLEMS AND IMPLEMENT CODE OR THIS PROJECT, AS IT IS A GOOD WORKING IMPLEMENTATION OF A NEXT JS PROJECT WORKING WITH LIVEKIT FOR VIDEO STREAMING, AND THAT MUST BE IMPLEMENTED IN NEXTALK.
+
 ## Objective
 The goal is to maintain a high-performance, scalable, and secure application using the specified tech stack. These rules ensure NextTalk remains consistent, maintainable, and aligned with its vision as a top-tier real-time audio discussion platform, now enhanced with LiveKit for seamless call streaming.

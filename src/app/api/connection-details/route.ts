@@ -38,13 +38,16 @@ function createParticipantToken(
     throw new Error('LiveKit API credentials are not configured properly');
   }
   
-  // Don't generate tokens for invalid room names
-  if (!roomName || roomName === 'undefined') {
+  // Ensure room name is valid and sanitized
+  if (!roomName || roomName === 'undefined' || roomName === 'null') {
     console.error('Invalid room name provided:', roomName);
     throw new Error('Invalid room name provided');
   }
 
   try {
+    // Log token generation
+    console.log(`Generating token for room [${roomName}], user [${name}]`);
+    
     const at = new AccessToken(API_KEY, API_SECRET, {
       identity,
       name,
@@ -61,7 +64,7 @@ function createParticipantToken(
     at.addGrant(grant);
     
     const token = at.toJwt();
-    console.log('Generated token successfully for room:', roomName);
+    console.log('Successfully generated token for room:', roomName);
     return token;
   } catch (error) {
     console.error('Error generating LiveKit token:', error);
@@ -80,6 +83,26 @@ function getLiveKitURL(region: string | null): string {
     throw new Error(`${targetKey} is not defined`);
   }
   return url;
+}
+
+// Sanitize a room name to ensure it's valid for LiveKit
+function sanitizeRoomName(roomName: string): string {
+  if (!roomName || roomName === 'undefined' || roomName === 'null') {
+    throw new Error('Invalid room name');
+  }
+  
+  // Remove any characters that aren't alphanumeric, spaces, or hyphens
+  const sanitized = roomName
+    .replace(/[^\w\s-]/g, '')  
+    .replace(/\s+/g, '-')      // Replace spaces with hyphens
+    .toLowerCase();            // Convert to lowercase for consistency
+  
+  // If after sanitization we have nothing left, throw an error
+  if (!sanitized) {
+    throw new Error('Room name contains only invalid characters');
+  }
+  
+  return sanitized;
 }
 
 export async function GET(request: NextRequest) {
@@ -122,9 +145,18 @@ export async function GET(request: NextRequest) {
     }
     
     // Check for valid room name
-    if (!roomName || roomName === 'undefined') {
+    if (!roomName || roomName === 'undefined' || roomName === 'null') {
       console.error('Invalid room name provided:', roomName);
       return new NextResponse('Invalid room name: must not be empty or "undefined"', { status: 400 });
+    }
+    
+    // Sanitize room name
+    let sanitizedRoomName;
+    try {
+      sanitizedRoomName = sanitizeRoomName(roomName);
+    } catch (error) {
+      console.error('Room name sanitization failed:', error);
+      return new NextResponse('Invalid room name: contains invalid characters', { status: 400 });
     }
     
     // Check LiveKit URL
@@ -151,7 +183,7 @@ export async function GET(request: NextRequest) {
       identity,
       participantName,
       metadata,
-      roomName
+      sanitizedRoomName
     );
 
     // Check token is valid
@@ -163,7 +195,7 @@ export async function GET(request: NextRequest) {
     // Return connection details
     const data = {
       serverUrl: livekitServerUrl,
-      roomName: roomName,
+      roomName: sanitizedRoomName,
       participantToken: participantToken,
       participantName: participantName,
     };

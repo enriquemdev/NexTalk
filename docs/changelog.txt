@@ -605,4 +605,30 @@ Implementation Details:
    - Fixed the Next.js build error related to Promise-based params
    - Maintained all existing functionality while fixing type errors
 
-Purpose: This fix resolves a critical build error that was preventing the deployment of the application. The error was related to Next.js 15.2.4's typings for page props and params, which now expect Promise-based fields. 
+Purpose: This fix resolves a critical build error that was preventing the deployment of the application. The error was related to Next.js 15.2.4's typings for page props and params, which now expect Promise-based fields.
+
+Date: 2024-09-06
+
+FIX: TypeScript build error in `src/app/rooms/[id]/page.tsx`
+
+Description: Updated the room page component to handle Promise-based parameters in Next.js 15.2.4.
+
+Implementation Details:
+1. Refactored the RoomPage component to properly await Promise-based params
+2. Updated the generateMetadata function to handle Promise-based params
+3. Maintained all page functionality while fixing TypeScript errors
+
+Purpose: This fix resolves a critical build error related to Next.js 15.2.4's requirement for Promise-based params in page components. The updated implementation ensures type compatibility with Next.js 15.2.4 while preserving all existing functionality.
+
+Date: 2024-09-06
+
+FIX: Build error related to reference project
+
+Description: Fixed a build error by excluding the reference project from TypeScript checking.
+
+Implementation Details:
+1. Updated tsconfig.json to exclude the "reference-project/**/*" pattern from TypeScript compilation
+2. Maintained the reference project as a read-only reference without modifying its contents
+3. Ensured the build process ignores type errors in the reference project
+
+Purpose: This fix allows the Next.js application to build successfully without being affected by type errors in the reference project, while still keeping the reference code available for documentation and learning purposes. 

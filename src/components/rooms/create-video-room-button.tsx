@@ -19,18 +19,32 @@ export function CreateVideoRoomButton() {
     let finalRoomName = roomName.trim() || randomString(8);
     
     // Ensure the room name is valid
-    if (finalRoomName === 'undefined') {
+    if (finalRoomName === 'undefined' || finalRoomName === '') {
       finalRoomName = randomString(8);
     }
+    
+    // Remove any special characters that might cause issues
+    finalRoomName = finalRoomName
+      .replace(/[^\w\s-]/g, '') // Replace non-word, non-space, non-hyphen chars
+      .replace(/\s+/g, '-')    // Replace spaces with hyphens
+      .toLowerCase();          // Convert to lowercase
+    
+    // If after cleanup it's empty, generate a random string
+    if (!finalRoomName) {
+      finalRoomName = randomString(8);
+    }
+    
+    console.log("Creating room with name:", finalRoomName);
     
     setIsCreating(true);
     
     try {
-      // Navigate to the video room
-      router.push(`/video-rooms/${finalRoomName}`);
+      // Navigate to the video room with properly encoded URL
+      router.push(`/video-rooms/${encodeURIComponent(finalRoomName)}`);
       setIsOpen(false);
     } catch (error) {
       console.error("Error creating video room:", error);
+      alert("Error creating video room. Please try again with a different name.");
     } finally {
       setIsCreating(false);
     }
