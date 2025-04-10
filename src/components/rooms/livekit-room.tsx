@@ -5,18 +5,26 @@ import {
   LiveKitRoom, 
   RoomAudioRenderer,
   useParticipants, 
-  useTracks
+  useTracks,
+  useLocalParticipant
 } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { Track, TrackPublication } from "livekit-client";
 import { getLiveKitToken, createLiveKitRoomName } from "@/services/livekit-service";
 import { Id } from "convex/_generated/dataModel";
 
 interface LiveKitRoomProps {
   roomId: Id<"rooms">;
   participantName?: string;
+  isMuted?: boolean;
+  onMicrophoneStatusChange?: (isMuted: boolean) => void;
 }
 
-export function LiveKitAudioRoom({ roomId, participantName }: LiveKitRoomProps) {
+export function LiveKitAudioRoom({ 
+  roomId, 
+  participantName, 
+  isMuted = false,
+  onMicrophoneStatusChange
+}: LiveKitRoomProps) {
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
@@ -56,13 +64,23 @@ export function LiveKitAudioRoom({ roomId, participantName }: LiveKitRoomProps) 
       <RoomAudioRenderer />
       
       {/* Invisible audio management component */}
-      <AudioParticipantsControl />
+      <AudioParticipantsControl 
+        isMuted={isMuted} 
+        onMicrophoneStatusChange={onMicrophoneStatusChange}
+      />
     </LiveKitRoom>
   );
 }
 
 // Component to control audio settings
-function AudioParticipantsControl() {
+function AudioParticipantsControl({ 
+  isMuted = false,
+  onMicrophoneStatusChange
+}: { 
+  isMuted?: boolean;
+  onMicrophoneStatusChange?: (isMuted: boolean) => void;
+}) {
+  const { localParticipant } = useLocalParticipant();
   const participants = useParticipants();
   const tracks = useTracks(
     [
@@ -70,11 +88,71 @@ function AudioParticipantsControl() {
     ]
   );
   
+  // Initial mic setup when participant connects
+  useEffect(() => {
+    if (localParticipant) {
+      console.log('Local participant connected:', localParticipant.identity);
+      // Apply initial mic state when first connected
+      localParticipant.setMicrophoneEnabled(!isMuted);
+      
+      // Check the actual state and sync with UI if needed
+      if (onMicrophoneStatusChange) {
+        // Use a short delay to ensure track is published
+        const timer = setTimeout(() => {
+          const micTrack = localParticipant.getTrackPublications().find(
+            pub => pub.source === Track.Source.Microphone
+          );
+          if (micTrack) {
+            console.log('Microphone track found:', micTrack.isMuted ? 'Muted' : 'Unmuted');
+            if (micTrack.isMuted !== isMuted && onMicrophoneStatusChange) {
+              onMicrophoneStatusChange(micTrack.isMuted);
+            }
+          } else {
+            console.log('No microphone track found for local participant');
+          }
+        }, 1000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [localParticipant, isMuted, onMicrophoneStatusChange]);
+  
+  // Handle mute state changes
+  useEffect(() => {
+    if (localParticipant) {
+      console.log('Setting microphone state to:', isMuted ? 'Muted' : 'Unmuted');
+      localParticipant.setMicrophoneEnabled(!isMuted);
+    }
+  }, [isMuted, localParticipant]);
+  
+  // Notify parent component when microphone state changes
+  useEffect(() => {
+    if (!localParticipant || !onMicrophoneStatusChange) return;
+    
+    const handleMuteChanged = (pub: TrackPublication) => {
+      if (pub.source === Track.Source.Microphone) {
+        console.log('Microphone state changed:', pub.isMuted ? 'Muted' : 'Unmuted');
+        onMicrophoneStatusChange(pub.isMuted);
+      }
+    };
+    
+    localParticipant.on('trackMuted', handleMuteChanged);
+    localParticipant.on('trackUnmuted', handleMuteChanged);
+    
+    return () => {
+      localParticipant.off('trackMuted', handleMuteChanged);
+      localParticipant.off('trackUnmuted', handleMuteChanged);
+    };
+  }, [localParticipant, onMicrophoneStatusChange]);
+  
   // Logs for debugging
   useEffect(() => {
     console.log(`Connected participants: ${participants.length}`);
     console.log(`Audio tracks: ${tracks.length}`);
-  }, [participants.length, tracks.length]);
+    participants.forEach(participant => {
+      console.log(`Participant: ${participant.identity}, Audio tracks: ${participant.getTrackPublications().filter(pub => pub.source === Track.Source.Microphone).length}`);
+    });
+  }, [participants, tracks]);
   
   return null; // This component doesn't render anything visible
 } 

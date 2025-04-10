@@ -14,6 +14,7 @@ import { MicIcon, MicOffIcon, Users2Icon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Id, Doc } from "convex/_generated/dataModel";
 import { LiveKitAudioRoom } from "@/components/rooms/livekit-room";
+import { Mic, MicOff } from "lucide-react";
 
 export default function RoomPage() {
   const params = useParams();
@@ -67,6 +68,7 @@ export default function RoomPage() {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [myParticipantId, setMyParticipantId] = useState<Id<"roomParticipants"> | null>(null);
   const [showLiveKit, setShowLiveKit] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
 
   // Find my participant record
   const myParticipant = participants.find(p => p.userId === userId && !p.leftAt);
@@ -200,6 +202,25 @@ export default function RoomPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myParticipantId]);
   
+  const handleMicToggle = () => {
+    if (!user) return;
+    
+    const newMuteState = !isMicMuted;
+    setIsMicMuted(newMuteState);
+    
+    if (newMuteState) {
+      toast({ title: 'Microphone muted' });
+    } else {
+      toast({ title: 'Microphone unmuted' });
+    }
+  };
+  
+  // Add an effect to monitor microphone status changes
+  useEffect(() => {
+    // Empty effect, we just want to trigger toasts in the handleMicToggle function directly
+    // This keeps the UX cleaner than having duplicate toasts from both handleMicToggle and onMicrophoneStatusChange
+  }, [isMicMuted]);
+  
   if (!room) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -297,6 +318,8 @@ export default function RoomPage() {
           <LiveKitAudioRoom 
             roomId={roomId} 
             participantName={user?.name || undefined}
+            isMuted={isMicMuted}
+            onMicrophoneStatusChange={setIsMicMuted}
           />
         </div>
       )}
@@ -321,12 +344,12 @@ export default function RoomPage() {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Button 
-                    size="icon" 
-                    variant={myParticipant.isMuted ? "destructive" : "outline"} 
-                    onClick={handleToggleMute}
+                  <Button
+                    onClick={handleMicToggle}
+                    className={`p-2 rounded-full ${isMicMuted ? 'bg-gray-500' : 'bg-green-500'} transition-colors`}
+                    aria-label={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
                   >
-                    {myParticipant.isMuted ? <MicOffIcon className="w-4 h-4" /> : <MicIcon className="w-4 h-4" />}
+                    {isMicMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                   </Button>
                   
                   {confirmLeave ? (
