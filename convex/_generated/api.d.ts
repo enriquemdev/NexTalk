@@ -20,6 +20,7 @@ import type * as reactions from "../reactions.js";
 import type * as recordings from "../recordings.js";
 import type * as rooms from "../rooms.js";
 import type * as users from "../users.js";
+import type * as webrtc from "../webrtc.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   recordings: typeof recordings;
   rooms: typeof rooms;
   users: typeof users;
+  webrtc: typeof webrtc;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

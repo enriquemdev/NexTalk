@@ -54,6 +54,8 @@ export default defineSchema({
     // Configuration
     isPrivate: v.boolean(), // Public or private (invite-only)
     isRecorded: v.boolean(), // Whether recording is enabled
+    isDeleted: v.optional(v.boolean()), // Soft delete marker
+    deletedAt: v.optional(v.number()), // When the room was deleted
     
     // Stats
     participantCount: v.optional(v.number()), // Current number of participants
@@ -63,7 +65,8 @@ export default defineSchema({
     .index("by_scheduledFor", ["scheduledFor"])
     .index("by_status", ["status"])
     .index("by_creator", ["createdBy"])
-    .index("by_visibility", ["isPrivate"]),
+    .index("by_visibility", ["isPrivate"])
+    .index("by_deletion", ["isDeleted"]),
   
   // Room participants and their roles
   roomParticipants: defineTable({
@@ -80,6 +83,20 @@ export default defineSchema({
     .index("by_room_user", ["roomId", "userId"])
     .index("by_room_joinedAt", ["roomId", "joinedAt"])
     .index("by_room_role", ["roomId", "role"]),
+  
+  // WebRTC signaling for audio rooms
+  webrtcSignaling: defineTable({
+    roomId: v.id("rooms"),
+    senderUserId: v.id("users"),
+    receiverUserId: v.id("users"),
+    type: v.string(), // "offer", "answer", "ice-candidate"
+    payload: v.string(), // JSON stringified SDP or ICE candidate
+    createdAt: v.number(),
+    processed: v.boolean(), // Whether this message has been processed
+  })
+    .index("by_receiver", ["receiverUserId", "processed", "createdAt"])
+    .index("by_room_receiver", ["roomId", "receiverUserId", "processed"])
+    .index("by_room_users", ["roomId", "senderUserId", "receiverUserId"]),
   
   // Room invitations (for private rooms)
   roomInvitations: defineTable({

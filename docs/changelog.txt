@@ -1,5 +1,128 @@
 CHANGELOG
 
+Date: 2024-08-20
+
+FIX: Sign-In Page Import Error
+
+Description: Fixed a module not found error in the sign-in page caused by an incorrect import path.
+
+Implementation Details:
+1. Updated the import path in src/app/(auth)/sign-in/page.tsx to correctly point to the LoginForm component
+2. Changed from '@/components/login-form' to '@/components/auth/login-form'
+
+Purpose: This fix resolves the build error "Module not found: Can't resolve '@/components/login-form'" that was preventing users from accessing the sign-in page.
+
+Date: 2023-08-17
+
+FEATURE: Room Management Enhancements - Leave and Delete Functionality
+
+Description: Implemented enhanced room management features, including improved room exit functionality for mobile devices and room deletion with proper cleanup.
+
+Implementation Details:
+1. Soft Delete Implementation:
+   - Modified schema to add isDeleted and deletedAt fields to rooms
+   - Implemented soft delete functionality instead of permanent deletion
+   - Added index by_deletion for efficient filtering of deleted rooms
+   - Updated room queries to exclude deleted rooms by default
+
+2. Room Deletion:
+   - Added a deleteRoom mutation in Convex backend
+   - Implemented proper cleanup of related data:
+     - Marks all participants as having left
+     - Ends active recordings
+     - Marks all WebRTC signaling messages as processed
+   - Added confirmation dialog before deletion
+   - Restricted deletion to room creators only
+
+3. Mobile Experience Improvements:
+   - Fixed leave room button on mobile devices
+   - Added confirmation dialog for leaving rooms on mobile
+   - Improved button sizing and touch targets
+   - Enhanced responsive layout for room controls
+
+4. UI Enhancements:
+   - Added "Delete Room" button for room hosts
+   - Improved button contrast and visibility
+   - Added clear confirmation steps for destructive actions
+   - Ensured consistent UI across device sizes
+
+Purpose: These enhancements improve the user experience around room management, particularly for mobile users, while ensuring data integrity during room deletion. The soft delete approach provides a safety net and allows for potential future features like room restoration.
+
+Date: 2024-04-09
+
+FEATURE: Live Audio Streaming in Rooms
+
+Description: Implemented live audio streaming functionality for real-time audio discussions in rooms.
+
+Implementation Details:
+1. Room Page Implementation:
+   - Created a detailed room page with participant list and audio controls
+   - Added join/leave room functionality with proper state management
+   - Implemented mute/unmute controls for audio streams
+
+2. WebRTC Integration:
+   - Added WebRTC peer connection setup for real-time audio streaming
+   - Implemented audio track handling between participants
+   - Set up STUN servers for NAT traversal
+   - Added hidden audio elements for remote stream playback
+
+3. Backend Support:
+   - Added Convex functions for room participants management
+   - Implemented getParticipants query to fetch room participants
+   - Added leaveRoom mutation for handling participant departure
+   - Created getMultiple function to efficiently fetch multiple users at once
+
+Purpose: This implementation enables the core audio communication functionality that is essential for NextTalk, allowing users to enter rooms and listen to other participants in real-time.
+
+Date: 2024-04-09
+
+FIX: Sign-In Redirect to 404 Page Issue
+
+Description: Fixed an issue where clicking the sign-in button would redirect users to a 404 page rather than completing the authentication flow.
+
+Implementation Details:
+1. Updated OAuth Callback Configuration:
+   - Modified the login form to use absolute URLs with window.location.origin for redirect URLs
+   - Ensured the redirectUrl parameter includes the full domain for proper OAuth callback handling
+
+2. Middleware Configuration:
+   - Updated the middleware.ts file to properly handle the SSO callback routes
+   - Added explicit matcher patterns for authentication-related routes
+   - Simplified the clerkMiddleware implementation for better compatibility
+
+3. Clerk Configuration:
+   - Verified the proper connection between Clerk and Convex via convex.json and auth.config.js
+   - Ensured the convex JWT template matches the applicationID in the config
+
+Purpose: This fix ensures users can successfully sign in using OAuth providers without encountering 404 errors, improving the authentication experience and reducing user friction.
+
+Date: 2024-04-09
+
+FIX: Authentication Sign-In Issues
+
+Description: Fixed issues preventing users from signing in to the application with Clerk authentication.
+
+Implementation Details:
+1. Login Component Updates:
+   - Enhanced the LoginForm component to properly integrate with Clerk OAuth providers
+   - Added proper button handlers for Google and Apple sign-in
+   - Added loading states to prevent multiple sign-in attempts
+
+2. SSO Callback Implementation:
+   - Created the SSO callback page for handling OAuth redirects
+   - Added AuthenticateWithRedirectCallback component for proper authentication flow
+
+3. Authentication Configuration:
+   - Updated middleware.ts to correctly handle public routes
+   - Created convex.json with proper authInfo configuration
+   - Verified Clerk domain in auth.config.js matches environment settings
+
+4. Debugging:
+   - Added DebugConvex component to the login form and home page
+   - Added proper error handling for authentication issues
+
+Purpose: These changes resolve critical authentication issues preventing users from signing in to the application, ensuring proper integration between Clerk and Convex for user authentication.
+
 Date: 2024-04-09
 
 FIX: Authentication Synchronization with Convex
@@ -188,4 +311,138 @@ Implementation Details:
    - @radix-ui/react-toast
    - class-variance-authority
 
-Purpose: This implementation provides a consistent and accessible way to show notifications and feedback across the application. 
+Purpose: This implementation provides a consistent and accessible way to show notifications and feedback across the application.
+
+Date: 2024-06-19
+
+ADD: User Logout Functionality
+
+Description: Added the ability for users to log out of the application.
+
+Implementation Details:
+1. Added Clerk's UserButton component to the main navigation header
+2. Configured the UserButton with an afterSignOutUrl property to redirect users to the homepage after logout
+3. Placed the button next to the existing ThemeToggle for a clean user interface
+
+Purpose: This change adds an essential user experience feature, allowing users to securely log out of their accounts when needed, improving the authentication flow of the application.
+
+Date: 2024-06-19
+
+FIX: Sign-In Page 404 Error
+
+Description: Fixed an issue where accessing the /sign-in route would result in a 404 error.
+
+Implementation Details:
+1. Created a new sign-in page at src/app/(auth)/sign-in/page.tsx
+2. Reused the existing LoginForm component for authentication
+3. Added proper routing with Next.js Link component for navigation
+4. Ensured the page matches the design of the existing login page
+
+Purpose: This fix ensures users can access the sign-in page directly through the /sign-in URL, improving the authentication flow and fixing broken links throughout the application.
+
+Date: 2024-06-19
+
+FIX: Login Form Build Error
+
+Description: Fixed a build error in the login-form.tsx component by adding the "use client" directive.
+
+Implementation Details:
+1. Added "use client" directive at the top of the login-form.tsx file
+2. This fixed the error: "You're importing a component that needs useState. This React hook only works in a client component."
+3. Ensures the component is properly rendered on the client side where React hooks are available
+
+Purpose: This fix resolves a critical build error that was preventing the application from compiling and running properly, ensuring the login functionality works as expected.
+
+Date: 2024-06-19
+
+FIX: HTML Nesting Error in DebugConvex Component
+
+Description: Fixed a hydration error caused by invalid HTML nesting in the DebugConvex component.
+
+Implementation Details:
+1. Fixed the invalid HTML structure where an ordered list (<ol>) was nested inside a paragraph (<p>) tag
+2. Moved the <ol> element outside of the <p> element while maintaining the same styling
+3. Added text styling to the <ol> element to maintain visual consistency
+
+Purpose: This fix resolves a React hydration error that was causing display issues and console errors. HTML specifications don't allow block elements like <ol> to be nested inside <p> tags.
+
+Date: 2024-06-19
+
+ADD: Facebook Authentication Option
+
+Description: Added Facebook as a social login option alongside Google and Apple.
+
+Implementation Details:
+1. Added a Facebook login button to the login form component
+2. Implemented signInWithFacebook handler function that uses Clerk's authenticateWithRedirect method
+3. Added Facebook logo icon for the login button
+4. Updated the login form description to reflect the available login options
+
+Purpose: This enhancement provides users with an additional authentication option, allowing them to use their Facebook accounts for sign-in. This expands the app's accessibility and gives users more flexibility in how they authenticate.
+
+Date: 2024-06-19
+
+UPDATE: Removed Apple Authentication Option
+
+Description: Removed Apple as a social login option, keeping only Google and Facebook authentication.
+
+Implementation Details:
+1. Removed the Apple login button from the login form component
+2. Removed the signInWithApple handler function
+3. Updated the login form description to reflect the available login options
+
+Purpose: This change simplifies the authentication options based on user requirements, focusing on the most commonly used social login providers.
+
+Date: 2024-06-19
+
+FEATURE: Implemented WebRTC Audio Streaming
+
+Description: Added real-time audio streaming functionality in rooms using WebRTC with Convex as the signaling server.
+
+Implementation Details:
+1. Created a new webrtcSignaling table in the Convex schema for exchanging WebRTC signaling messages
+2. Added API endpoints for sending and receiving WebRTC offers, answers, and ICE candidates
+3. Implemented proper peer-to-peer connections between room participants
+4. Added automatic stream connection establishment when new users join a room
+5. Implemented real-time audio streaming with proper muting functionality
+
+Purpose: This feature implements a critical component of the audio room functionality, allowing users to hear each other in real-time when they join the same room. It establishes direct peer-to-peer connections for high-quality, low-latency audio communication.
+
+Date: 2024-06-20
+
+FIX: CreateRoomForm User ID Issue
+
+Description: Fixed a type error in CreateRoomForm where a placeholder string was incorrectly used instead of a proper Convex user ID.
+
+Implementation Details:
+1. Imported and utilized the useCurrentUser hook to get the authenticated user's ID
+2. Added validation to check if user is logged in before creating a room
+3. Replaced hardcoded placeholder with actual user ID to satisfy the TypeScript type requirements
+
+Purpose: This fix resolves a build error where TypeScript was rejecting the string value for a field that requires a proper Convex ID type, ensuring type safety throughout the application.
+
+Date: 2024-06-20
+
+FIX: Room Card TypeScript Error
+
+Description: Fixed a TypeScript error in the RoomCard component where the creator object was being improperly typed.
+
+Implementation Details:
+1. Updated the User interface to include additional properties that match the Convex user document structure
+2. Added proper type conversion for the creator object returned from the Convex query
+3. Created a formattedCreator variable that ensures the object passed to UserAvatar is always of type User | null
+
+Purpose: This fix resolves a TypeScript build error by ensuring proper type compatibility between the Convex user document and the UserAvatar component's expected props, maintaining type safety throughout the application.
+
+Date: 2024-06-20
+
+FIX: Theme Provider TypeScript Error
+
+Description: Fixed a TypeScript error in the ThemeProvider component where the imported types were causing build failures.
+
+Implementation Details:
+1. Created a custom ThemeProviderProps type definition that includes all necessary properties
+2. Removed the dependency on the external type import from "next-themes/dist/types"
+3. Used type assertion to resolve compatibility issues between the custom type and the next-themes library
+
+Purpose: This fix resolves a TypeScript build error by ensuring compatibility between our application's types and the next-themes library without relying on external type definitions that might not be available. 

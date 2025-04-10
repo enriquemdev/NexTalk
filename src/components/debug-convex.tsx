@@ -33,13 +33,13 @@ export function DebugConvex() {
       )}
       <p className="mt-2 text-sm text-muted-foreground">
         If you're seeing authentication errors, make sure:
-        <ol className="list-decimal pl-5 mt-1">
-          <li>You've created a "convex" JWT template in Clerk</li>
-          <li>The auth.js file has the correct Clerk domain</li>
-          <li>You've configured convex.json correctly</li>
-          <li>The Convex dev server is running (npx convex dev)</li>
-        </ol>
       </p>
+      <ol className="list-decimal pl-5 mt-1 text-sm text-muted-foreground">
+        <li>You've created a "convex" JWT template in Clerk</li>
+        <li>The auth.js file has the correct Clerk domain</li>
+        <li>You've configured convex.json correctly</li>
+        <li>The Convex dev server is running (npx convex dev)</li>
+      </ol>
     </div>
   );
 } 

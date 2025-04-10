@@ -18,6 +18,7 @@ The project must strictly adhere to the following technologies. Do not introduce
 - **Backend:**
   - Next.js API routes (for server-side logic)
   - Convex (for real-time database, authentication, and object storage)
+  - SocketIO (You can install it if you think it will be useful for signaling)
 
 - **AI Integrations:**
   - Vercel SDK with OpenAI API (for general AI features like recommendations and summaries)

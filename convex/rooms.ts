@@ -42,7 +42,14 @@ export const list = query({
     
     const limit = args.limit ?? 50;
     
-    return await query.order("desc").take(limit);
+    // Exclude deleted rooms
+    return await query
+      .filter(q => q.or(
+        q.eq(q.field("isDeleted"), false),
+        q.eq(q.field("isDeleted"), undefined)
+      ))
+      .order("desc")
+      .take(limit);
   },
 });
 
@@ -106,7 +113,10 @@ export const create = mutation({
  * Get a room by ID
  */
 export const get = query({
-  args: { roomId: v.id("rooms") },
+  args: { 
+    roomId: v.id("rooms"),
+    includeDeleted: v.optional(v.boolean()) 
+  },
   returns: v.union(
     v.object({
       _id: v.id("rooms"),
@@ -121,13 +131,23 @@ export const get = query({
       endedAt: v.optional(v.number()),
       isPrivate: v.boolean(),
       isRecorded: v.boolean(),
+      isDeleted: v.optional(v.boolean()),
+      deletedAt: v.optional(v.number()),
       participantCount: v.optional(v.number()),
       peakParticipantCount: v.optional(v.number()),
     }),
     v.null()
   ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.roomId);
+    const room = await ctx.db.get(args.roomId);
+    
+    // If no room found, return null
+    if (!room) return null;
+    
+    // If room is deleted and includeDeleted is not true, return null
+    if (room.isDeleted && !args.includeDeleted) return null;
+    
+    return room;
   },
 });
 
@@ -377,102 +397,63 @@ export const joinRoom = mutation({
 });
 
 /**
- * Leave a room
+ * Get room participants
  */
-export const leaveRoom = mutation({
-  args: {
-    roomId: v.id("rooms"),
-    userId: v.id("users"),
-  },
+export const getParticipants = query({
+  args: { roomId: v.id("rooms") },
+  returns: v.array(
+    v.object({
+      _id: v.id("roomParticipants"),
+      _creationTime: v.number(),
+      roomId: v.id("rooms"),
+      userId: v.id("users"),
+      role: v.string(),
+      joinedAt: v.number(),
+      leftAt: v.optional(v.number()),
+      isMuted: v.boolean(),
+      hasRaisedHand: v.optional(v.boolean()),
+    })
+  ),
   handler: async (ctx, args) => {
-    // Find the participant entry
-    const participant = await ctx.db
+    const participants = await ctx.db
       .query("roomParticipants")
-      .withIndex("by_room_user", (q) =>
-        q.eq("roomId", args.roomId).eq("userId", args.userId)
-      )
-      .filter((q) => q.eq(q.field("leftAt"), undefined))
-      .first();
+      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
+      .collect();
     
-    if (!participant) {
-      throw new Error("User is not in this room");
-    }
-    
-    const now = Date.now();
-    
-    // Mark participant as having left
-    await ctx.db.patch(participant._id, {
-      leftAt: now,
-    });
-    
-    // Update room participant count
-    const room = await ctx.db.get(args.roomId);
-    if (room) {
-      const currentCount = room.participantCount ?? 0;
-      const newCount = Math.max(0, currentCount - 1);
-      
-      await ctx.db.patch(args.roomId, {
-        participantCount: newCount,
-      });
-      
-      // If the user is the host and there are no more participants, end the room
-      if (participant.role === "host" && newCount === 0) {
-        await ctx.db.patch(args.roomId, {
-          status: "ended",
-          endedAt: now,
-        });
-        
-        // End any active recordings
-        const recordings = await ctx.db
-          .query("recordings")
-          .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
-          .filter((q) => q.eq(q.field("status"), "recording"))
-          .collect();
-        
-        for (const recording of recordings) {
-          await ctx.db.patch(recording._id, {
-            endedAt: now,
-            status: "processing",
-          });
-        }
-      }
-    }
-    
-    return true;
+    return participants;
   },
 });
 
 /**
- * Get all participants in a room
+ * Leave a room
  */
-export const getParticipants = query({
+export const leaveRoom = mutation({
   args: {
-    roomId: v.id("rooms"),
+    participantId: v.id("roomParticipants"),
   },
   handler: async (ctx, args) => {
-    // Get all participants who haven't left
-    const participants = await ctx.db
-      .query("roomParticipants")
-      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
-      .filter((q) => q.eq(q.field("leftAt"), undefined))
-      .collect();
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) {
+      throw new Error("Participant not found");
+    }
     
-    // Fetch user details for each participant
-    const userIds = participants.map((p) => p.userId);
-    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
-    
-    // Combine participant info with user details
-    return participants.map((participant, index) => {
-      const user = users[index];
-      return {
-        participant,
-        user: user ? { 
-          _id: user._id,
-          name: user.name,
-          image: user.image,
-        } : null,
-      };
+    // Mark the participant as having left
+    await ctx.db.patch(args.participantId, {
+      leftAt: Date.now(),
     });
+    
+    // Update the room's participant count
+    const room = await ctx.db.get(participant.roomId);
+    if (room) {
+      const currentCount = room.participantCount ?? 0;
+      if (currentCount > 0) {
+        await ctx.db.patch(participant.roomId, {
+          participantCount: currentCount - 1,
+        });
+      }
+    }
+    
+    return args.participantId;
   },
 });
 
@@ -754,6 +735,82 @@ export const respondToInvitation = mutation({
         }
       }
     }
+    
+    return true;
+  },
+});
+
+/**
+ * Delete a room (soft delete)
+ */
+export const deleteRoom = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+    
+    // Verify the user is the room creator (only creators can delete rooms)
+    if (room.createdBy !== args.userId) {
+      throw new Error("Only the room creator can delete a room");
+    }
+    
+    const now = Date.now();
+    
+    // First, mark all participants as having left the room
+    const participants = await ctx.db
+      .query("roomParticipants")
+      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
+      .filter((q) => q.eq(q.field("leftAt"), undefined))
+      .collect();
+    
+    console.log(`Removing ${participants.length} participants from room ${args.roomId}`);
+    
+    for (const participant of participants) {
+      await ctx.db.patch(participant._id, {
+        leftAt: now,
+      });
+    }
+    
+    // End any active recordings
+    const recordings = await ctx.db
+      .query("recordings")
+      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
+      .filter((q) => q.eq(q.field("status"), "recording"))
+      .collect();
+    
+    for (const recording of recordings) {
+      await ctx.db.patch(recording._id, {
+        endedAt: now,
+        status: "processing",
+      });
+    }
+    
+    // Mark all webRTC signaling messages as processed
+    const signals = await ctx.db
+      .query("webrtcSignaling")
+      .withIndex("by_room_receiver")
+      .filter(q => q.eq(q.field("roomId"), args.roomId))
+      .collect();
+    
+    for (const signal of signals) {
+      await ctx.db.patch(signal._id, {
+        processed: true,
+      });
+    }
+    
+    // Mark the room as deleted (soft delete)
+    await ctx.db.patch(args.roomId, {
+      isDeleted: true,
+      deletedAt: now,
+      status: "ended", // Ensure the room is marked as ended
+      endedAt: room.endedAt || now,
+      participantCount: 0,
+    });
     
     return true;
   },
