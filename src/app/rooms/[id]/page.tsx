@@ -35,6 +35,7 @@ export default function RoomPage() {
   
   // Audio context for WebRTC
   const {
+    localStream,
     remoteStreams,
     isMuted,
     startLocalStream,
@@ -79,12 +80,20 @@ export default function RoomPage() {
   const joinRoomMutation = useMutation(api.rooms.joinRoom);
   const leaveRoomMutation = useMutation(api.rooms.leaveRoom);
   const toggleMuteMutation = useMutation(api.rooms.toggleMute);
+  const sendSignalMutation = useMutation(api.webrtc.sendSignal);
+  const markSignalProcessedMutation = useMutation(api.webrtc.markSignalProcessed);
 
   // State
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [myParticipantId, setMyParticipantId] = useState<Id<"roomParticipants"> | null>(null);
   const [peerConnections, setPeerConnections] = useState<Map<string, RTCPeerConnection>>(new Map());
+
+  // Get WebRTC signals meant for this user
+  const webrtcSignals = useQuery(
+    api.webrtc.getRoomSignals, 
+    userId && roomId ? { roomId, userId } : "skip"
+  ) || [];
 
   // Find my participant record
   const myParticipant = participants.find(p => p.userId === userId && !p.leftAt);
@@ -104,7 +113,7 @@ export default function RoomPage() {
     
     try {
       // First get microphone access
-      const stream = await startLocalStream();
+      await startLocalStream();
       
       // Join room in database
       const participantId = await joinRoomMutation({ roomId, userId });
@@ -115,10 +124,7 @@ export default function RoomPage() {
         description: "You've successfully joined the audio room",
       });
       
-      // Setup WebRTC connections with existing participants
-      if (stream) {
-        setupWebRTC(stream);
-      }
+      // We'll initialize connections when we see other participants
       
     } catch (error) {
       console.error("Failed to join room:", error);
@@ -185,56 +191,197 @@ export default function RoomPage() {
     }
   };
   
-  // Set up WebRTC connections
-  const setupWebRTC = (stream: MediaStream) => {
-    // Create peer connections for each existing participant
-    participants
-      .filter(p => p.userId !== userId && !p.leftAt) // Only connect to other active participants
-      .forEach(participant => {
-        // Create and store a new peer connection
-        const peerConnection = new RTCPeerConnection(ICE_SERVERS);
-        
-        // Add our local audio tracks to the connection
-        stream.getTracks().forEach(track => {
-          peerConnection.addTrack(track, stream);
+  // Create a peer connection for a participant
+  const createPeerConnection = (participantUserId: Id<"users">) => {
+    if (!userId || !localStream) return null;
+    
+    console.log(`Creating peer connection for participant: ${participantUserId}`);
+    
+    // Create a new RTCPeerConnection
+    const peerConnection = new RTCPeerConnection(ICE_SERVERS);
+    
+    // Add local tracks to the connection
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+    
+    // Handle ICE candidates
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        // Send ICE candidate to the peer through signaling
+        sendSignalMutation({
+          roomId,
+          senderUserId: userId,
+          receiverUserId: participantUserId,
+          type: "ice-candidate",
+          payload: JSON.stringify(event.candidate),
         });
-        
-        // Handle ICE candidates (network connection info)
-        peerConnection.onicecandidate = (event) => {
-          if (event.candidate) {
-            // In a production app, you would send this candidate to the peer
-            // For now, we'll log it (this would typically use a signaling system)
-            console.log("ICE candidate for", participant.userId, event.candidate);
-          }
-        };
-        
-        // Handle incoming remote tracks (audio from other participants)
-        peerConnection.ontrack = (event) => {
-          if (event.streams && event.streams[0]) {
-            addRemoteStream(participant.userId, event.streams[0]);
-          }
-        };
-        
-        // Create an offer to start the connection
-        peerConnection
-          .createOffer()
-          .then(offer => peerConnection.setLocalDescription(offer))
-          .then(() => {
-            // In a production app, you would send this offer to the peer through signaling
-            console.log("Created offer for", participant.userId);
-          })
-          .catch(error => {
-            console.error("Error creating offer:", error);
-          });
-          
-        // Store the connection
-        setPeerConnections(prev => {
-          const newConnections = new Map(prev);
-          newConnections.set(participant.userId, peerConnection);
-          return newConnections;
-        });
-      });
+      }
+    };
+    
+    // Handle incoming remote tracks
+    peerConnection.ontrack = (event) => {
+      if (event.streams && event.streams[0]) {
+        console.log(`Received remote stream from participant: ${participantUserId}`);
+        addRemoteStream(participantUserId, event.streams[0]);
+      }
+    };
+    
+    // Store the connection
+    setPeerConnections(prev => {
+      const newConnections = new Map(prev);
+      newConnections.set(participantUserId, peerConnection);
+      return newConnections;
+    });
+    
+    return peerConnection;
   };
+  
+  // Create an offer for a peer connection
+  const createOffer = async (participantUserId: Id<"users">) => {
+    if (!userId) return;
+    
+    try {
+      // Get or create peer connection
+      let peerConnection = peerConnections.get(participantUserId);
+      if (!peerConnection) {
+        peerConnection = createPeerConnection(participantUserId);
+        if (!peerConnection) return;
+      }
+      
+      // Create offer
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      
+      // Send offer to peer
+      if (peerConnection.localDescription) {
+        await sendSignalMutation({
+          roomId,
+          senderUserId: userId,
+          receiverUserId: participantUserId,
+          type: "offer",
+          payload: JSON.stringify(peerConnection.localDescription),
+        });
+      }
+    } catch (error) {
+      console.error("Error creating offer:", error);
+    }
+  };
+  
+  // Handle an offer from another participant
+  const handleOffer = async (
+    offerUserId: Id<"users">, 
+    sessionDescription: RTCSessionDescriptionInit
+  ) => {
+    if (!userId || !localStream) return;
+    
+    try {
+      // Get or create peer connection
+      let peerConnection = peerConnections.get(offerUserId);
+      if (!peerConnection) {
+        peerConnection = createPeerConnection(offerUserId);
+        if (!peerConnection) return;
+      }
+      
+      // Set remote description from offer
+      await peerConnection.setRemoteDescription(sessionDescription);
+      
+      // Create answer
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      
+      // Send answer back to peer
+      if (peerConnection.localDescription) {
+        await sendSignalMutation({
+          roomId,
+          senderUserId: userId,
+          receiverUserId: offerUserId,
+          type: "answer",
+          payload: JSON.stringify(peerConnection.localDescription),
+        });
+      }
+    } catch (error) {
+      console.error("Error handling offer:", error);
+    }
+  };
+  
+  // Handle an answer from another participant
+  const handleAnswer = async (
+    answerUserId: Id<"users">,
+    sessionDescription: RTCSessionDescriptionInit
+  ) => {
+    try {
+      const peerConnection = peerConnections.get(answerUserId);
+      if (peerConnection) {
+        await peerConnection.setRemoteDescription(sessionDescription);
+      }
+    } catch (error) {
+      console.error("Error handling answer:", error);
+    }
+  };
+  
+  // Handle an ICE candidate from another participant
+  const handleIceCandidate = async (
+    iceUserId: Id<"users">,
+    candidate: RTCIceCandidate
+  ) => {
+    try {
+      const peerConnection = peerConnections.get(iceUserId);
+      if (peerConnection) {
+        await peerConnection.addIceCandidate(candidate);
+      }
+    } catch (error) {
+      console.error("Error handling ICE candidate:", error);
+    }
+  };
+  
+  // Process incoming WebRTC signals
+  useEffect(() => {
+    if (!webrtcSignals.length) return;
+    
+    const processSignals = async () => {
+      for (const signal of webrtcSignals) {
+        try {
+          const { senderUserId, type, payload, _id } = signal;
+          const data = JSON.parse(payload);
+          
+          switch (type) {
+            case "offer":
+              await handleOffer(senderUserId, data);
+              break;
+            case "answer":
+              await handleAnswer(senderUserId, data);
+              break;
+            case "ice-candidate":
+              await handleIceCandidate(senderUserId, data);
+              break;
+          }
+          
+          // Mark signal as processed
+          await markSignalProcessedMutation({ signalId: _id });
+        } catch (error) {
+          console.error("Error processing signal:", error);
+        }
+      }
+    };
+    
+    processSignals();
+  }, [webrtcSignals]);
+  
+  // Initiate connections with new participants
+  useEffect(() => {
+    if (!userId || !localStream || !myParticipantId) return;
+    
+    // Get participants that we don't have connections with yet
+    const activeParticipants = participants.filter(
+      p => p.userId !== userId && !p.leftAt && !peerConnections.has(p.userId)
+    );
+    
+    // Create connections with new participants
+    activeParticipants.forEach(async (participant) => {
+      await createOffer(participant.userId);
+    });
+  }, [participants, userId, localStream, myParticipantId, peerConnections]);
   
   // Clean up when leaving the page
   useEffect(() => {

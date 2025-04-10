@@ -343,4 +343,19 @@ Implementation Details:
 2. Removed the signInWithApple handler function
 3. Updated the login form description to reflect the available login options
 
-Purpose: This change simplifies the authentication options based on user requirements, focusing on the most commonly used social login providers. 
+Purpose: This change simplifies the authentication options based on user requirements, focusing on the most commonly used social login providers.
+
+Date: 2024-06-19
+
+FEATURE: Implemented WebRTC Audio Streaming
+
+Description: Added real-time audio streaming functionality in rooms using WebRTC with Convex as the signaling server.
+
+Implementation Details:
+1. Created a new webrtcSignaling table in the Convex schema for exchanging WebRTC signaling messages
+2. Added API endpoints for sending and receiving WebRTC offers, answers, and ICE candidates
+3. Implemented proper peer-to-peer connections between room participants
+4. Added automatic stream connection establishment when new users join a room
+5. Implemented real-time audio streaming with proper muting functionality
+
+Purpose: This feature implements a critical component of the audio room functionality, allowing users to hear each other in real-time when they join the same room. It establishes direct peer-to-peer connections for high-quality, low-latency audio communication. 
