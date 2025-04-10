@@ -18,16 +18,19 @@ The project must strictly adhere to the following technologies. Do not introduce
 - **Backend:**
   - Next.js API routes (for server-side logic)
   - Convex (for real-time database, authentication, and object storage)
-  - SocketIO (You can install it if you think it will be useful for signaling)
+  - LiveKit (for real-time audio/video streaming and WebRTC management) INTEGRATE IT IF ITS MISSING
 
 - **AI Integrations:**
   - Vercel SDK with OpenAI API (for general AI features like recommendations and summaries)
   - Eleven Labs API (for speech-to-text and text-to-speech functionalities)
 
-- **Optional Tools (if strictly needed):**
+- **Optional Tools (if needed):**
   - Upstash (for caching or queues)
   - Luma AI (for video generation in commercial features)
   - Fal AI (for image generation in commercial features)
+
+- **Authentication:**
+  - Clerk (for user authentication and management)
 
 - **Testing:**
   - Jest (for unit and integration tests)
@@ -36,11 +39,34 @@ The project must strictly adhere to the following technologies. Do not introduce
 - **Deployment:**
   - Vercel (for hosting and serverless functions)
 
+## Call Streaming Workflow
+This section outlines the integration of LiveKit for real-time audio/video streaming:
+
+1. **User Authentication:**
+   - The user logs in using Clerk, which provides a `userId` for identification.
+
+2. **Room Management:**
+   - Your Next.js app uses the `userId` from Clerk to fetch and display available rooms stored in Convex.
+
+3. **Access Token Generation:**
+   - The app generates a LiveKit JWT access token using the `userId` as the identity, via a secure Next.js API route.
+
+4. **Joining a Room:**
+   - The frontend uses the generated LiveKit token to connect to a specific room in LiveKit.
+   - LiveKit handles all WebRTC-related functionality (signaling and media transmission) for real-time audio/video streaming.
+
+5. **Data Persistence with Convex:**
+   - Convex remains the central database for:
+     - Storing room details (e.g., room IDs, metadata).
+     - Managing participants (e.g., who’s in the call).
+     - Tracking call states (e.g., active, ended).
+     - Maintaining call history and related data.
+
 ## Development Guidelines
 
 1. **Prioritize Existing Tools:**
-   - Always leverage the installed tech stack (Next.js, Convex, Shadcn) before suggesting or integrating external libraries.
-   - Example: Use Convex’s real-time features for data syncing instead of adding a new library.
+   - Always leverage the installed tech stack (Next.js, Convex, Shadcn, LiveKit) before suggesting or integrating external libraries.
+   - Example: Use Convex’s real-time features for data syncing and LiveKit for streaming instead of adding new libraries.
 
 2. **Next.js Constraints:**
    - Use the App Router exclusively for routing and navigation.
@@ -53,34 +79,40 @@ The project must strictly adhere to the following technologies. Do not introduce
    - Use functional components with hooks; avoid class components.
 
 4. **Backend and Database:**
-   - Use Convex exclusively for database operations, real-time updates, and authentication.
+   - Use Convex exclusively for database operations, real-time updates, and authentication (excluding streaming).
    - Define schemas and queries in the `/convex` directory.
    - Optimize real-time data handling for low latency.
 
-5. **AI Integration Best Practices:**
+5. **Streaming with LiveKit:**
+   - Use LiveKit for all WebRTC-related tasks (signaling, peer-to-peer streaming).
+   - Generate secure JWT tokens server-side using Next.js API routes.
+   - Ensure seamless integration with Convex for room and participant management.
+
+6. **AI Integration Best Practices:**
    - Optimize OpenAI and Eleven Labs API calls to reduce costs and latency.
    - Make AI features (e.g., translations, captions) optional and user-toggleable.
    - Handle audio streams efficiently for speech processing.
 
-6. **Testing:**
+7. **Testing:**
    - Write unit tests for critical components and utilities using Jest.
-   - Implement integration tests for real-time features and AI integrations.
+   - Implement integration tests for real-time features, AI integrations, and LiveKit streaming.
    - Use Cypress or Playwright for end-to-end tests to verify user flows.
 
-7. **Performance and Scalability:**
+8. **Performance and Scalability:**
    - Implement lazy loading and code splitting to minimize initial load times.
-   - Optimize Convex queries to prevent performance bottlenecks.
-   - Monitor and enhance real-time updates for large sessions.
+   - Optimize Convex queries and LiveKit connections to prevent performance bottlenecks.
+   - Monitor and enhance real-time updates and streaming for large sessions.
 
-8. **Security:**
-   - Use Convex for secure authentication and authorization.
+9. **Security:**
+   - Use Convex for secure authentication and authorization of data.
+   - Use Clerk for user authentication and LiveKit JWTs for secure streaming access.
    - Validate all user inputs and secure API routes.
    - Ensure payment integrations (in commercial features) follow security best practices.
 
-9. **Code Maintenance:**
-   - Do not erase or modify code providing existing functionality unless explicitly instructed.
-   - Accumulate functionality in files like migrations or seeders without removing prior implementations.
-   - Example: Add new permissions or schema entries without deleting existing ones unless necessary.
+10. **Code Maintenance:**
+    - Do not erase or modify code providing existing functionality unless explicitly instructed.
+    - Accumulate functionality in files like migrations or seeders without removing prior implementations.
+    - Example: Add new permissions or schema entries without deleting existing ones unless necessary.
 
 ## Objective
-The goal is to maintain a high-performance, scalable, and secure application using the specified tech stack. These rules ensure NextTalk remains consistent, maintainable, and aligned with its vision as a top-tier real-time audio discussion platform.
+The goal is to maintain a high-performance, scalable, and secure application using the specified tech stack. These rules ensure NextTalk remains consistent, maintainable, and aligned with its vision as a top-tier real-time audio discussion platform, now enhanced with LiveKit for seamless call streaming.

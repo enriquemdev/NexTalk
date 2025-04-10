@@ -25,15 +25,18 @@ The development will follow three phases:
 ## **2. Tech Stack**
 
 - **Frontend Framework**: Next.js v15 (App Router) with TypeScript
-- **Database & Real-Time**: Convex (for real-time database, authentication, and object storage)
+- **Backend & API**: Next.js API routes (for server-side logic)
+- **Database & Real-Time**: Convex (for real-time database, authentication, room management, and object storage)
+- **Streaming**: LiveKit (for real-time audio/video streaming and WebRTC management)
+- **Authentication**: Clerk (for user authentication and management)
 - **UI Styling**: Tailwind CSS and Shadcn UI components
 - **AI Integrations**:
   - **General AI**: Vercel SDK with OpenAI API (recommendations, summaries)
   - **Speech Processing**: Eleven Labs (speech-to-text for captions, text-to-speech for translations)
-- **Optional**: Upstash (for caching or queues if needed)
-- **Future Integrations**:
   - **Video Generation**: Luma AI
   - **Image Generation**: Fal AI
+- **Optional**: 
+  - Upstash (for caching or queues if needed)
 
 ---
 
