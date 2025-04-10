@@ -2,6 +2,38 @@ CHANGELOG
 
 Date: 2024-08-20
 
+FEATURE: LiveKit Audio Streaming Integration
+
+Description: Replaced the custom WebRTC implementation with LiveKit for real-time audio streaming in rooms.
+
+Implementation Details:
+1. API Integration:
+   - Created a token generation API endpoint to generate secure LiveKit JWT tokens
+   - Integrated LiveKit server-side SDK for authentication
+   - Added environment variables for LiveKit configuration
+
+2. Client Components:
+   - Created a LiveKitAudioRoom component for handling audio streaming
+   - Added LiveKit React components and styles
+   - Implemented token fetching and room connection logic
+   - Improved audio quality and streaming reliability
+
+3. Infrastructure Improvements:
+   - Simplified room joining and leaving process
+   - Removed manual WebRTC peer connection handling
+   - Leveraged LiveKit's built-in STUN/TURN servers for better NAT traversal
+   - Enhanced audio quality with LiveKit's audio processing
+
+4. Codebase Cleanup:
+   - Removed custom AudioContextProvider
+   - Eliminated manual signal handling for WebRTC
+   - Simplified UI code by delegating audio handling to LiveKit
+   - Reduced potential for audio connection failures and bugs
+
+Purpose: This implementation replaces the custom WebRTC solution with LiveKit's proven, scalable infrastructure, improving audio quality, connection reliability, and room scalability while simplifying the codebase.
+
+Date: 2024-08-20
+
 FIX: Sign-In Page Import Error
 
 Description: Fixed a module not found error in the sign-in page caused by an incorrect import path.

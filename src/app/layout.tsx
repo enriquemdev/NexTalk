@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "@livekit/components-styles";
 import { ClerkProvider, UserButton } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/providers/convex-client-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { AudioContextProvider } from "@/providers/audio-provider";
 import { ThemeToggle } from "@/components/core/theme-toggle";
 import { AuthSync } from "@/components/auth/auth-sync";
 
@@ -33,24 +33,22 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <AudioContextProvider>
-                <AuthSync />
-                <main className="min-h-screen bg-gradient-to-b from-background to-background/90">
-                  <header className="border-b">
-                    <div className="container mx-auto py-4 px-4 flex items-center justify-between">
-                      <h1 className="text-2xl font-bold">NextTalk</h1>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <ThemeToggle />
-                          <UserButton afterSignOutUrl="/" />
-                        </div>
+              <AuthSync />
+              <main className="min-h-screen bg-gradient-to-b from-background to-background/90">
+                <header className="border-b">
+                  <div className="container mx-auto py-4 px-4 flex items-center justify-between">
+                    <h1 className="text-2xl font-bold">NextTalk</h1>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <ThemeToggle />
+                        <UserButton afterSignOutUrl="/" />
                       </div>
                     </div>
-                  </header>
-                  {children}
-                </main>
-                <Toaster />
-              </AudioContextProvider>
+                  </div>
+                </header>
+                {children}
+              </main>
+              <Toaster />
             </ThemeProvider>
           </ConvexClientProvider>
         </ClerkProvider>
