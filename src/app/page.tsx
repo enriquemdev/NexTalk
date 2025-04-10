@@ -1,39 +1,25 @@
-"use client";
-
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { RoomCard } from "@/components/rooms/room-card";
-import { CreateRoomForm } from "@/components/rooms/create-room-form";
-import { Toaster } from "sonner";
+import { CreateRoomButton } from "@/components/rooms/create-room-button";
+import { LiveRoomsSection } from "@/components/rooms/live-rooms-section";
+import { UpcomingRoomsSection } from "@/components/rooms/upcoming-rooms-section";
+import { RecentRecordingsSection } from "@/components/rooms/recent-recordings-section";
+import { UserProfileCard } from "@/components/user/user-profile-card";
+import { FeaturedRoomsBanner } from "@/components/rooms/featured-rooms-banner";
 
 export default function Home() {
-  const rooms = useQuery(api.rooms.list);
-
   return (
-    <>
-      <Toaster />
-      <main className="container mx-auto py-8 px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-bold">Chat Rooms</h1>
-          <CreateRoomForm />
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr,300px] gap-8">
+        <div className="space-y-8">
+          <FeaturedRoomsBanner />
+          <LiveRoomsSection />
+          <UpcomingRoomsSection />
+          <RecentRecordingsSection />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rooms?.map((room) => (
-            <RoomCard
-              key={room._id}
-              id={room._id}
-              name={room.name}
-              description={room.description}
-              createdAt={room.createdAt}
-            />
-          ))}
-          {!rooms?.length && (
-            <p className="text-muted-foreground col-span-full text-center py-8">
-              No rooms available. Create one to get started!
-            </p>
-          )}
+        <div className="space-y-4">
+          <UserProfileCard />
+          <CreateRoomButton />
         </div>
-      </main>
-    </>
+      </div>
+    </div>
   );
 }

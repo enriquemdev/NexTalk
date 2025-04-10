@@ -1,129 +1,112 @@
+"use client";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/use-toast";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Room name is required")
-    .max(50, "Room name is too long"),
-  description: z.string().max(200, "Description is too long").optional(),
-});
+interface CreateRoomFormProps {
+  onSuccess?: () => void;
+}
 
-type FormValues = z.infer<typeof formSchema>;
-
-export function CreateRoomForm() {
-  const [open, setOpen] = useState(false);
+export function CreateRoomForm({ onSuccess }: CreateRoomFormProps) {
+  const { toast } = useToast();
   const createRoom = useMutation(api.rooms.create);
-  const router = useRouter();
+  const { userId } = useCurrentUser();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [isRecorded, setIsRecorded] = useState(false);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  });
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsLoading(true);
 
-  const onSubmit = async (data: FormValues) => {
     try {
-      // TODO: Replace with actual user ID from auth
-      const roomId = await createRoom({
-        name: data.name,
-        description: data.description,
-        userId: "placeholder-user-id",
+      if (!userId) {
+        throw new Error("You must be logged in to create a room");
+      }
+
+      const formData = new FormData(event.currentTarget);
+      await createRoom({
+        name: formData.get("name") as string,
+        description: formData.get("description") as string,
+        isPrivate,
+        isRecorded,
+        userId,
       });
 
-      toast.success("Room created successfully!");
+      toast({
+        title: "Success",
+        description: "Room created successfully!",
+      });
 
-      setOpen(false);
-      form.reset();
-      router.push(`/room/${roomId}`);
-    } catch (error: unknown) {
+      onSuccess?.();
+    } catch (error) {
       console.error("Failed to create room:", error);
-      toast.error("Failed to create room. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to create room. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="default" className="rounded-md">
-          Create Room
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create a New Room</DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Room Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter room name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter room description"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">Create Room</Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <form onSubmit={onSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="name">Room Name</Label>
+        <Input
+          id="name"
+          name="name"
+          placeholder="Enter room name"
+          required
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          name="description"
+          placeholder="Enter room description"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="private">Private Room</Label>
+          <Switch
+            id="private"
+            checked={isPrivate}
+            onCheckedChange={setIsPrivate}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="recorded">Record Session</Label>
+          <Switch
+            id="recorded"
+            checked={isRecorded}
+            onCheckedChange={setIsRecorded}
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Creating..." : "Create Room"}
+      </Button>
+    </form>
   );
-}
+} 
