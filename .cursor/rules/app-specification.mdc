@@ -5,6 +5,8 @@ alwaysApply: true
 ---
 # **NexTalk App Specification**
 
+FIRST OF ALL, THE NAME OF THE APP IS NexTalk not NextTalk.
+
 ## **1. Project Overview**
 
 **NexTalk** is a cutting-edge platform for hosting and participating in live audio/video discussions, with features like real-time reactions, AI-driven enhancements, and multimedia integrations. The app is designed to be:
