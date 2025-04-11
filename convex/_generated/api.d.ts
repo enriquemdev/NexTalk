@@ -20,6 +20,7 @@ import type * as reactions from "../reactions.js";
 import type * as recordings from "../recordings.js";
 import type * as rooms from "../rooms.js";
 import type * as users from "../users.js";
+import type * as videoRooms from "../videoRooms.js";
 import type * as webrtc from "../webrtc.js";
 
 /**
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   recordings: typeof recordings;
   rooms: typeof rooms;
   users: typeof users;
+  videoRooms: typeof videoRooms;
   webrtc: typeof webrtc;
 }>;
 export declare const api: FilterApi<

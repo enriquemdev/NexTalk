@@ -706,26 +706,14 @@ Implementation Details:
 
 Purpose: This refactor standardizes the video room connection flow based on a proven, working implementation. By mirroring the reference project's logic, it aims to eliminate the recurring "Failed to generate connection token" errors and improve the overall stability of joining video rooms.
 
-Date: 2024-09-06
+Date: 2024-09-07
 
-FEATURE: Add Destructive Room Cleanup Tool (Development)
+FIX: Restore Create Video Room Button
 
-Description: Added a tool to the main page UI for deleting all room records from the database. This is intended for development and testing environments only.
+Description: Restored the button for creating new video rooms on the main page, which was accidentally removed during previous refactoring.
 
 Implementation Details:
-1. Backend (Convex):
-   - Added `internalDeleteRoomBatch` mutation to delete a batch of rooms and related data (participants, etc.).
-   - Added `getAllRoomsInternal` query to fetch all rooms for cleanup.
-   - Added `deleteAllRoomsAction` internal action to manage the batch deletion process.
-   - Added `triggerDeleteAllRooms` public mutation (requires auth) to start the cleanup action via scheduler.
-   - Included console logging for process visibility.
+- Re-imported the `CreateVideoRoomButton` component in `src/app/page.tsx`.
+- Placed the `CreateVideoRoomButton` next to the "Active Video Rooms" heading using Flexbox for layout.
 
-2. Frontend (UI - `src/app/page.tsx`):
-   - Added an `AlertDialog` component from Shadcn UI.
-   - Added a "Clean Up All Rooms" button wrapped in the `AlertDialogTrigger`.
-   - Implemented a confirmation dialog (`AlertDialogContent`) explaining the destructive nature of the action.
-   - Added `handleDeleteAllRooms` function to call the `triggerDeleteAllRooms` mutation.
-   - Included loading state and toast notifications for feedback.
-   - Placed the button in a clearly marked "Development Tools" section.
-
-Purpose: This feature provides a convenient way for developers to quickly reset room data during development or testing, facilitating faster iteration cycles. The destructive nature is clearly communicated through the UI and confirmation dialog. 
+Purpose: This fix ensures users can easily create new video rooms directly from the main page, restoring essential functionality. 

@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,26 +16,18 @@ export function VideoRoomCard({ roomName, isActive = true }: VideoRoomCardProps)
   const router = useRouter();
 
   const handleJoinRoom = () => {
-    router.push(`/video-rooms/${roomName}`);
+    router.push(`/video-rooms/${encodeURIComponent(roomName)}`);
   };
 
   const handleShareRoom = () => {
-    const roomUrl = `${window.location.origin}/video-rooms/${roomName}`;
+    const roomUrl = `${window.location.origin}/video-rooms/${encodeURIComponent(roomName)}`;
     
-    if (navigator.share) {
-      navigator.share({
-        title: `Join my video room: ${roomName}`,
-        text: `Join my video conference on NextTalk`,
-        url: roomUrl,
-      }).catch(error => console.error("Error sharing:", error));
-    } else {
-      navigator.clipboard.writeText(roomUrl).then(() => {
-        alert("Room link copied to clipboard!");
-      }).catch(error => {
-        console.error("Failed to copy link:", error);
-        prompt("Copy this link to share:", roomUrl);
-      });
-    }
+    navigator.clipboard.writeText(roomUrl).then(() => {
+      alert("Room link copied!");
+    }).catch(err => {
+      console.error('Failed to copy', err);
+      prompt("Copy link:", roomUrl);
+    });
   };
 
   return (

@@ -173,4 +173,15 @@ export default defineSchema({
   })
     .index("by_user_read", ["userId", "isRead"])
     .index("by_user_createdAt", ["userId", "createdAt"]),
+
+  // Video Rooms (ephemeral, identified by name)
+  videoRooms: defineTable({
+    name: v.string(), // Unique room name from URL
+    // createdBy: v.optional(v.id("users")), // Optional: Track creator if needed
+    createdAt: v.number(), // Timestamp of first join attempt
+    lastActivityAt: v.number(), // Timestamp of the last known join/activity
+    // participantCount: v.optional(v.number()), // Optional: Could be tracked via webhooks
+  })
+  .index("by_name", ["name"])
+  .index("by_lastActivityAt", ["lastActivityAt"]),
 }); 

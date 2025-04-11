@@ -19,64 +19,9 @@ import {
   RoomConnectOptions,
 } from 'livekit-client';
 import { useRouter } from 'next/navigation';
-import React from 'react';
-
-// Add these functions after the imports and before PageClientImpl
-// We'll use localStorage to track recent rooms the user has visited
-const RECENT_ROOMS_KEY = "nextalk_recent_video_rooms";
-
-interface VideoRoom {
-  roomName: string;
-  lastVisited: number;
-  isActive: boolean;
-}
-
-function getRecentRooms(): VideoRoom[] {
-  if (typeof window === "undefined") return [];
-  
-  try {
-    const storedRooms = localStorage.getItem(RECENT_ROOMS_KEY);
-    if (!storedRooms) return [];
-    
-    return JSON.parse(storedRooms) as VideoRoom[];
-  } catch (error) {
-    console.error("Error loading recent rooms:", error);
-    return [];
-  }
-}
-
-function addRecentRoom(roomName: string) {
-  if (typeof window === "undefined") return;
-  
-  try {
-    const existingRooms = getRecentRooms();
-    
-    // Check if room already exists
-    const existingRoomIndex = existingRooms.findIndex(r => r.roomName === roomName);
-    
-    if (existingRoomIndex >= 0) {
-      // Update existing room
-      existingRooms[existingRoomIndex].lastVisited = Date.now();
-      existingRooms[existingRoomIndex].isActive = true;
-    } else {
-      // Add new room
-      existingRooms.push({
-        roomName,
-        lastVisited: Date.now(),
-        isActive: true
-      });
-    }
-    
-    // Limit to 10 most recent rooms
-    const sortedRooms = existingRooms
-      .sort((a, b) => b.lastVisited - a.lastVisited)
-      .slice(0, 10);
-    
-    localStorage.setItem(RECENT_ROOMS_KEY, JSON.stringify(sortedRooms));
-  } catch (error) {
-    console.error("Error saving recent room:", error);
-  }
-}
+import React, { useEffect } from 'react';
+import { useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
 
 // Ensure CONN_DETAILS_ENDPOINT uses the process.env variable or defaults
 const CONN_DETAILS_ENDPOINT =
@@ -101,10 +46,24 @@ export function PageClientImpl(props: {
   const [connectionDetails, setConnectionDetails] = React.useState<ConnectionDetails | undefined>(
     undefined,
   );
+  const ensureVideoRoom = useMutation(api.videoRooms.ensureVideoRoomExists);
 
-  // Use the exact handlePreJoinSubmit from the reference project
+  // Use the exact handlePreJoinSubmit from the reference project, but add ensureVideoRoom call
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
     setPreJoinChoices(values);
+    
+    // ** Ensure video room exists in Convex before proceeding **
+    try {
+      console.log(`Ensuring video room '${props.roomName}' exists in Convex...`);
+      await ensureVideoRoom({ roomName: props.roomName });
+      console.log(`Video room '${props.roomName}' ensured.`);
+    } catch (error) {
+      console.error('Error ensuring video room exists:', error);
+      alert(`Error preparing video room: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
+      return; // Stop execution if we can't ensure the room exists
+    }
+    
+    // Proceed with fetching connection details (logic from reference project)
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
     url.searchParams.append('roomName', props.roomName);
     url.searchParams.append('participantName', values.username);
@@ -123,7 +82,7 @@ export function PageClientImpl(props: {
       console.error('Error fetching connection details:', error);
       alert(`Error fetching connection details: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [props.roomName, props.region]);
+  }, [props.roomName, props.region, ensureVideoRoom]);
 
   // Use the exact handlePreJoinError from the reference project
   const handlePreJoinError = React.useCallback((e: unknown) => {
@@ -258,17 +217,8 @@ function VideoConferenceComponent(props: {
 
   const router = useRouter();
   const handleOnLeave = React.useCallback(() => {
-    // Update the room status to inactive
-    const existingRooms = getRecentRooms();
-    const roomIndex = existingRooms.findIndex(r => r.roomName === props.connectionDetails.roomName);
-    
-    if (roomIndex >= 0) {
-      existingRooms[roomIndex].isActive = false;
-      localStorage.setItem(RECENT_ROOMS_KEY, JSON.stringify(existingRooms));
-    }
-    
     router.push('/');
-  }, [router, props.connectionDetails.roomName]);
+  }, [router]);
 
   const handleError = React.useCallback((error: Error) => {
     console.error('LiveKit connection error:', error);
@@ -282,11 +232,6 @@ function VideoConferenceComponent(props: {
       `Encryption error: ${error.message}. E2EE may not work in this session.`,
     );
   }, []);
-
-  // Track this room in recent rooms
-  React.useEffect(() => {
-    addRecentRoom(props.connectionDetails.roomName);
-  }, [props.connectionDetails.roomName]);
 
   if (connectionError) {
     return (
