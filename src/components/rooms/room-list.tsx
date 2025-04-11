@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
-import { RoomCard } from "./room-card";
+import { VideoRoomCard } from "./video-room-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Id } from "convex/_generated/dataModel";
 
@@ -77,10 +77,12 @@ export function RoomList({ type, userId, limit = 10 }: RoomListProps) {
   return (
     <div className="space-y-4">
       {rooms.map((room) => (
-        <RoomCard 
-          key={room._id.toString()} 
-          room={room} 
-        />
+        <div key={room._id.toString()} className="w-full">
+          <VideoRoomCard 
+            roomName={room.name} 
+            isActive={room.status === 'live'}
+          />
+        </div>
       ))}
     </div>
   );

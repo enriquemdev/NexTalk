@@ -793,19 +793,6 @@ export const deleteRoom = mutation({
       });
     }
     
-    // Mark all webRTC signaling messages as processed
-    const signals = await ctx.db
-      .query("webrtcSignaling")
-      .withIndex("by_room_receiver")
-      .filter(q => q.eq(q.field("roomId"), args.roomId))
-      .collect();
-    
-    for (const signal of signals) {
-      await ctx.db.patch(signal._id, {
-        processed: true,
-      });
-    }
-    
     // Mark the room as deleted (soft delete)
     await ctx.db.patch(args.roomId, {
       isDeleted: true,

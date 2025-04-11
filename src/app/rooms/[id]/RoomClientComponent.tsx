@@ -53,7 +53,6 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({ roomId }) => 
   // Mutations
   const joinRoomMutation = useMutation(api.rooms.joinRoom);
   const leaveRoomMutation = useMutation(api.rooms.leaveRoom);
-  const toggleMuteMutation = useMutation(api.rooms.toggleMute);
   const deleteRoomMutation = useMutation(api.rooms.deleteRoom);
 
   // State
@@ -247,7 +246,7 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({ roomId }) => 
 
           {!myParticipant ? (
             <Button onClick={joinRoom} disabled={isJoining || !isLive} className="px-4">
-              {isJoining ? "Joining..." : "Join Audio Room"}
+              {isJoining ? "Joining..." : "Join Room"}
             </Button>
           ) : (
             <div className="flex flex-wrap sm:flex-row gap-2 justify-end">

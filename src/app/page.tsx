@@ -1,12 +1,10 @@
 'use client';
 
-// import { CreateRoomButton } from "@/components/rooms/create-room-button"; // Commented out if not used
 import { LiveRoomsSection } from "@/components/rooms/live-rooms-section";
 import { UpcomingRoomsSection } from "@/components/rooms/upcoming-rooms-section";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { HeroSection } from "@/components/hero-section";
-// import { FeaturedRoomsBanner } from "@/components/rooms/featured-rooms-banner"; // Commented out if not used
 import { DebugConvex } from "@/components/debug-convex";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery } from "convex/react";
@@ -24,9 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { VideoRoomCard } from "@/components/rooms/video-room-card"; // Import VideoRoomCard
-import { CreateVideoRoomButton } from "@/components/rooms/create-video-room-button"; // Import the button
-// import { Id } from "convex/_generated/dataModel"; // Commented out if not used
+import { VideoRoomCard } from "@/components/rooms/video-room-card";
+import { CreateVideoRoomButton } from "@/components/rooms/create-video-room-button";
 
 export default function Home() {
   const triggerDeleteAllRooms = useMutation(api.rooms.triggerDeleteAllRooms);

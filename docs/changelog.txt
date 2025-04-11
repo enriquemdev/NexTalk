@@ -716,4 +716,27 @@ Implementation Details:
 - Re-imported the `CreateVideoRoomButton` component in `src/app/page.tsx`.
 - Placed the `CreateVideoRoomButton` next to the "Active Video Rooms" heading using Flexbox for layout.
 
-Purpose: This fix ensures users can easily create new video rooms directly from the main page, restoring essential functionality. 
+Purpose: This fix ensures users can easily create new video rooms directly from the main page, restoring essential functionality.
+
+Date: 2024-09-08
+
+CLEANUP: Removed Old Audio-Only Room Functionality
+
+Description: Removed outdated UI components, Convex schema definitions, and Convex functions related to the old audio-only room system (based on manual WebRTC signaling) to streamline the codebase and focus on the LiveKit-based video room implementation.
+
+Implementation Details:
+1. Deleted UI Components:
+   - Removed `src/components/rooms/room-card.tsx`
+   - Removed `src/components/rooms/create-room-form.tsx`
+   - Removed `src/components/rooms/create-room-button.tsx`
+2. Updated Component Usage:
+   - Modified `src/components/rooms/room-list.tsx` to use `VideoRoomCard` instead of the deleted `RoomCard`.
+   - Removed commented-out import of `CreateRoomButton` in `src/app/page.tsx`.
+   - Changed "Join Audio Room" button text to "Join Room" in `src/app/rooms/[id]/RoomClientComponent.tsx`.
+3. Convex Schema Cleanup:
+   - Removed the `webrtcSignaling` table definition from `convex/schema.ts` as it was specific to the old manual signaling.
+4. Convex Function Cleanup:
+   - Deleted the entire `convex/webrtc.ts` file which contained functions solely for managing the `webrtcSignaling` table.
+   - Kept `convex/rooms.ts` largely intact as its functions manage persistent room metadata (`rooms` table) and participants (`roomParticipants`), which are still relevant.
+
+Purpose: This cleanup removes redundant code associated with the deprecated audio-only rooms, resulting in a cleaner, more maintainable codebase focused solely on the current LiveKit-based video room functionality. 

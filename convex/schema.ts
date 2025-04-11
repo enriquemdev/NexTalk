@@ -84,20 +84,6 @@ export default defineSchema({
     .index("by_room_joinedAt", ["roomId", "joinedAt"])
     .index("by_room_role", ["roomId", "role"]),
   
-  // WebRTC signaling for audio rooms
-  webrtcSignaling: defineTable({
-    roomId: v.id("rooms"),
-    senderUserId: v.id("users"),
-    receiverUserId: v.id("users"),
-    type: v.string(), // "offer", "answer", "ice-candidate"
-    payload: v.string(), // JSON stringified SDP or ICE candidate
-    createdAt: v.number(),
-    processed: v.boolean(), // Whether this message has been processed
-  })
-    .index("by_receiver", ["receiverUserId", "processed", "createdAt"])
-    .index("by_room_receiver", ["roomId", "receiverUserId", "processed"])
-    .index("by_room_users", ["roomId", "senderUserId", "receiverUserId"]),
-  
   // Room invitations (for private rooms)
   roomInvitations: defineTable({
     roomId: v.id("rooms"),
