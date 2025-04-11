@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## **1. Project Overview**
 
-**NexTalk** is a cutting-edge platform for hosting and participating in live audio discussions, with features like real-time reactions, AI-driven enhancements, and multimedia integrations. The app is designed to be:
+**NexTalk** is a cutting-edge platform for hosting and participating in live audio/video discussions, with features like real-time reactions, AI-driven enhancements, and multimedia integrations. The app is designed to be:
 
 - **Mobile-first and fully responsive**: Optimized for seamless use across devices.
 - **Real-time and interactive**: Leveraging Convex for real-time data syncing and user interactions.
@@ -57,7 +57,7 @@ The MVP focuses on delivering a functional audio discussion platform with essent
 
 #### **4.1.1 Core Audio Experience**
 - **Live Audio Rooms**:
-  - Hosts can create real-time audio spaces for discussions.
+  - Hosts can create real-time audio/video spaces for discussions.
   - Public or private access (invite-only).
   - Speaker management: mute, remove, or promote participants.
   - Co-hosting: appoint co-hosts to assist in session management.
