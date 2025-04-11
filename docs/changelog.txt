@@ -631,4 +631,77 @@ Implementation Details:
 2. Maintained the reference project as a read-only reference without modifying its contents
 3. Ensured the build process ignores type errors in the reference project
 
-Purpose: This fix allows the Next.js application to build successfully without being affected by type errors in the reference project, while still keeping the reference code available for documentation and learning purposes. 
+Purpose: This fix allows the Next.js application to build successfully without being affected by type errors in the reference project, while still keeping the reference code available for documentation and learning purposes.
+
+Date: 2024-09-06
+
+FIX: LiveKit Video Room Connection Issues
+
+Description: Fixed issues with LiveKit token generation and connection handling in video rooms.
+
+Implementation Details:
+1. Enhanced the /api/connection-details endpoint with:
+   - Improved error handling and logging
+   - Better environment variable handling with fallbacks
+   - Forced dynamic responses to prevent caching issues
+   - Detailed validation for room names and parameters
+   
+2. Added robustness to the video room client:
+   - Initial LiveKit configuration check before connection attempt
+   - Retry mechanism for connection failures (up to 3 attempts)
+   - Better error handling and user feedback
+   - Improved logging for troubleshooting
+
+3. Environment Variable Handling:
+   - Added fallback to use NEXT_PUBLIC_LIVEKIT_URL if LIVEKIT_URL is not available
+   - Added diagnostic logging to show which variables are set
+   - Improved error messages for missing configurations
+
+Purpose: This fix resolves the "Failed to connect: Failed to get connection details: Failed to generate connection token" error when users try to join video rooms. The implementation is now more robust and provides better error feedback, while also adding retry logic to handle transient network issues.
+
+Date: 2024-09-06
+
+FIX: Video Camera Compatibility Issues in VideoRooms
+
+Description: Fixed "OverconstrainedError" when attempting to join video rooms with cameras that don't support high resolutions.
+
+Implementation Details:
+1. Reduced default video resolution settings:
+   - Changed high quality mode from 1080p to 720p
+   - Changed standard quality mode from 720p to 540p
+   - Adjusted simulcast layers to use more compatible resolutions
+
+2. Enhanced error handling:
+   - Added specific error message for OverconstrainedError to guide users
+   - Improved user feedback for camera compatibility issues
+   - Added fallback suggestions when camera can't meet requested constraints
+
+3. Default codec improvements:
+   - Changed default video codec to VP8 for maximum browser compatibility
+   - Only use more advanced codecs (VP9, H264) when explicitly requested
+   - Implemented better codec fallback for end-to-end encryption
+
+Purpose: This fix resolves the "OverconstrainedError" that users were encountering when trying to join video rooms. The more compatible video settings ensure that users with a wider range of cameras (including older webcams and low-end devices) can successfully join video rooms without errors.
+
+Date: 2024-09-06
+
+REFAC: Aligned Video Room Connection with Reference Project
+
+Description: Replaced the LiveKit connection logic in video rooms with the exact implementation from the reference project to resolve persistent connection and token generation errors.
+
+Implementation Details:
+1. API Endpoint (`/api/connection-details`):
+   - Replaced the `GET` handler and `createParticipantToken` function with the code from `reference-project`.
+   - Ensured environment variables (API Key, Secret, URL) are handled identically.
+   - Replicated the cookie setting logic for participant identity postfix.
+
+2. Client-Side Logic (`page-client.tsx`):
+   - Replaced `handlePreJoinSubmit` to fetch connection details exactly as in `reference-project`.
+   - Replaced `handlePreJoinError` with the simpler error handling from `reference-project` (using `unknown` type for error).
+   - Ensured the `CONN_DETAILS_ENDPOINT` constant is used correctly.
+
+3. Utility Functions & Types:
+   - Verified `ConnectionDetails` type in `src/lib/types.ts` matches the reference.
+   - Ensured the `randomString` utility in `src/lib/client-utils.ts` is available and used consistently.
+
+Purpose: This refactor standardizes the video room connection flow based on a proven, working implementation. By mirroring the reference project's logic, it aims to eliminate the recurring "Failed to generate connection token" errors and improve the overall stability of joining video rooms. 

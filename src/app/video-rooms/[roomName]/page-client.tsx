@@ -21,8 +21,6 @@ import {
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
-const CONN_DETAILS_ENDPOINT = '/api/connection-details';
-
 // Add these functions after the imports and before PageClientImpl
 // We'll use localStorage to track recent rooms the user has visited
 const RECENT_ROOMS_KEY = "nextalk_recent_video_rooms";
@@ -80,6 +78,10 @@ function addRecentRoom(roomName: string) {
   }
 }
 
+// Ensure CONN_DETAILS_ENDPOINT uses the process.env variable or defaults
+const CONN_DETAILS_ENDPOINT =
+  process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
+
 export function PageClientImpl(props: {
   roomName: string;
   region?: string;
@@ -100,75 +102,37 @@ export function PageClientImpl(props: {
     undefined,
   );
 
+  // Use the exact handlePreJoinSubmit from the reference project
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
+    setPreJoinChoices(values);
+    const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
+    url.searchParams.append('roomName', props.roomName);
+    url.searchParams.append('participantName', values.username);
+    if (props.region) {
+      url.searchParams.append('region', props.region);
+    }
     try {
-      setPreJoinChoices(values);
-      
-      // Validate and sanitize the room name before sending the request
-      if (!props.roomName || props.roomName === 'undefined' || props.roomName === 'null') {
-        console.error('Invalid room name detected:', props.roomName);
-        throw new Error('Invalid room name. Please try with a different room name.');
-      }
-      
-      // Sanitize room name
-      const sanitizedRoomName = props.roomName.replace(/[^\w\s-]/g, '');
-      if (!sanitizedRoomName) {
-        throw new Error('Room name contains invalid characters.');
-      }
-      
-      console.log('Will connect to room:', sanitizedRoomName);
-      
-      const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
-      url.searchParams.append('roomName', sanitizedRoomName);
-      url.searchParams.append('participantName', values.username || 'Anonymous');
-      if (props.region) {
-        url.searchParams.append('region', props.region);
-      }
-      
-      console.log('Fetching connection details from:', url.toString());
-      
       const connectionDetailsResp = await fetch(url.toString());
       if (!connectionDetailsResp.ok) {
         const errorText = await connectionDetailsResp.text();
-        console.error('Connection details response error:', connectionDetailsResp.status, errorText);
-        throw new Error(`Failed to get connection details: ${errorText}`);
+        throw new Error(`Failed to get connection details: ${errorText} (${connectionDetailsResp.status})`);
       }
-      
       const connectionDetailsData = await connectionDetailsResp.json();
-      console.log('Connection details received successfully');
-      
-      // Validate the response data
-      if (!connectionDetailsData.serverUrl) {
-        console.error('Missing server URL in connection details:', connectionDetailsData);
-        throw new Error('Invalid server configuration');
-      }
-      
-      // Validate the token
-      if (!connectionDetailsData.participantToken || typeof connectionDetailsData.participantToken !== 'string') {
-        console.error('Invalid token in connection details:', connectionDetailsData);
-        throw new Error('Invalid token received from server');
-      }
-      
       setConnectionDetails(connectionDetailsData);
     } catch (error) {
-      console.error('Error in handlePreJoinSubmit:', error);
-      alert(`Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      throw error;
+      console.error('Error fetching connection details:', error);
+      alert(`Error fetching connection details: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [props.roomName, props.region]);
 
-  const handlePreJoinError = React.useCallback((e: Error) => {
+  // Use the exact handlePreJoinError from the reference project
+  const handlePreJoinError = React.useCallback((e: unknown) => {
     console.error('PreJoin error:', e);
-    
-    // Provide more helpful error messages for common issues
-    if (e.name === 'NotReadableError' || e.message.includes('Could not start video source')) {
-      alert('Camera access error: Your camera may be in use by another application or there might be a hardware issue. Please close other applications using your camera and try again.');
-    } else if (e.name === 'NotAllowedError' || e.message.includes('Permission denied')) {
-      alert('Permission denied: Please allow camera and microphone access in your browser settings and try again.');
-    } else if (e.name === 'NotFoundError' || e.message.includes('Requested device not found')) {
-      alert('No camera detected: Please connect a camera to your device and try again.');
+    if (e instanceof Error) {
+        alert(`Error during pre-join: ${e.message}`);
     } else {
-      alert(`Error joining room: ${e.message}`);
+        // Handle cases where e might not be an Error instance
+        alert(`An unknown error occurred during pre-join: ${JSON.stringify(e)}`);
     }
   }, []);
 
@@ -231,13 +195,13 @@ function VideoConferenceComponent(props: {
     return {
       videoCaptureDefaults: {
         deviceId: props.userChoices.videoDeviceId ?? undefined,
-        resolution: props.options.hq ? VideoPresets.h1080 : VideoPresets.h720, // Lowered from h2160 to h1080 which is more compatible
+        resolution: props.options.hq ? VideoPresets.h720 : VideoPresets.h540,
       },
       publishDefaults: {
         dtx: false,
         videoSimulcastLayers: props.options.hq
-          ? [VideoPresets.h720, VideoPresets.h540]  // Reduced quality to improve compatibility
-          : [VideoPresets.h540, VideoPresets.h216],
+          ? [VideoPresets.h540, VideoPresets.h360]
+          : [VideoPresets.h360, VideoPresets.h180],
         red: !e2eeEnabled,
         videoCodec,
       },

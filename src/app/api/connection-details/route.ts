@@ -1,75 +1,54 @@
-import { AccessToken, VideoGrant } from 'livekit-server-sdk';
+import { randomString as randomStringUtil } from '@/lib/client-utils';
+import { ConnectionDetails } from '@/lib/types';
+import { AccessToken, AccessTokenOptions, VideoGrant } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic responses from this API route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Explicitly load environment variables from process.env
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
-const LIVEKIT_URL = process.env.LIVEKIT_URL;
+const LIVEKIT_URL = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL; // Try both
 const COOKIE_KEY = 'random-participant-postfix';
 
-// Generate a random string for participant identity
-function randomString(length: number) {
-  let result = '';
-  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  const charactersLength = characters.length;
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
+// Function to check all LiveKit env variables
+function checkLiveKitEnv() {
+  console.log('==== LIVEKIT ENV VARIABLES CHECK ====');
+  console.log('API_KEY present:', !!API_KEY, API_KEY ? `(length: ${API_KEY.length})` : '(missing)');
+  console.log('API_SECRET present:', !!API_SECRET, API_SECRET ? `(length: ${API_SECRET.length})` : '(missing)');
+  console.log('LIVEKIT_URL:', LIVEKIT_URL || '(missing)');
+  console.log('NEXT_PUBLIC_LIVEKIT_URL:', process.env.NEXT_PUBLIC_LIVEKIT_URL || '(missing)');
+  
+  // Return a status object indicating which variables are missing
+  return {
+    hasApiKey: !!API_KEY,
+    hasApiSecret: !!API_SECRET,
+    hasLiveKitUrl: !!LIVEKIT_URL,
+    allConfigured: !!API_KEY && !!API_SECRET && !!LIVEKIT_URL
+  };
 }
 
-// Get cookie expiration time (2 hours from now)
-function getCookieExpirationTime(): string {
-  const now = new Date();
-  const time = now.getTime();
-  const expireTime = time + 60 * 120 * 1000;
-  now.setTime(expireTime);
-  return now.toUTCString();
-}
+// Call the check function but don't store the result if unused
+checkLiveKitEnv();
 
 // Create a participant token
-function createParticipantToken(
-  identity: string,
-  name: string,
-  metadata: string,
-  roomName: string
-) {
+function createParticipantToken(userInfo: AccessTokenOptions, roomName: string) {
   if (!API_KEY || !API_SECRET) {
-    console.error('LIVEKIT_API_KEY or LIVEKIT_API_SECRET is not defined');
-    throw new Error('LiveKit API credentials are not configured properly');
+    throw new Error('LiveKit API Key or Secret is not configured');
   }
-  
-  // Ensure room name is valid and sanitized
-  if (!roomName || roomName === 'undefined' || roomName === 'null') {
-    console.error('Invalid room name provided:', roomName);
-    throw new Error('Invalid room name provided');
-  }
-
-  try {
-    // Log token generation
-    console.log(`Generating token for room [${roomName}], user [${name}]`);
-    
-    const at = new AccessToken(API_KEY, API_SECRET, {
-      identity,
-      name,
-      metadata,
-    });
-    at.ttl = '5m';
-    const grant: VideoGrant = {
-      room: roomName,
-      roomJoin: true,
-      canPublish: true,
-      canPublishData: true,
-      canSubscribe: true,
-    };
-    at.addGrant(grant);
-    
-    const token = at.toJwt();
-    console.log('Successfully generated token for room:', roomName);
-    return token;
-  } catch (error) {
-    console.error('Error generating LiveKit token:', error);
-    throw new Error(`Failed to generate LiveKit token: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+  const at = new AccessToken(API_KEY, API_SECRET, userInfo);
+  at.ttl = '5m';
+  const grant: VideoGrant = {
+    room: roomName,
+    roomJoin: true,
+    canPublish: true,
+    canPublishData: true,
+    canSubscribe: true,
+  };
+  at.addGrant(grant);
+  return at.toJwt();
 }
 
 // Get the LiveKit server URL for a given region
@@ -80,29 +59,10 @@ function getLiveKitURL(region: string | null): string {
   }
   const url = process.env[targetKey];
   if (!url) {
+    console.error(`Environment variable ${targetKey} is not defined`);
     throw new Error(`${targetKey} is not defined`);
   }
   return url;
-}
-
-// Sanitize a room name to ensure it's valid for LiveKit
-function sanitizeRoomName(roomName: string): string {
-  if (!roomName || roomName === 'undefined' || roomName === 'null') {
-    throw new Error('Invalid room name');
-  }
-  
-  // Remove any characters that aren't alphanumeric, spaces, or hyphens
-  const sanitized = roomName
-    .replace(/[^\w\s-]/g, '')  
-    .replace(/\s+/g, '-')      // Replace spaces with hyphens
-    .toLowerCase();            // Convert to lowercase for consistency
-  
-  // If after sanitization we have nothing left, throw an error
-  if (!sanitized) {
-    throw new Error('Room name contains only invalid characters');
-  }
-  
-  return sanitized;
 }
 
 export async function GET(request: NextRequest) {
@@ -112,108 +72,63 @@ export async function GET(request: NextRequest) {
     const participantName = request.nextUrl.searchParams.get('participantName');
     const metadata = request.nextUrl.searchParams.get('metadata') ?? '';
     const region = request.nextUrl.searchParams.get('region');
-    const isConfigCheck = request.nextUrl.searchParams.get('check') === 'true';
-    
-    console.log('Connection details request:', { roomName, participantName, region });
-    
-    // If this is just a configuration check, return a simplified response
-    if (isConfigCheck) {
-      if (!API_KEY || !API_SECRET || !LIVEKIT_URL) {
-        console.error('Configuration check failed: missing LiveKit credentials');
-        return new NextResponse(JSON.stringify({ 
-          error: 'LiveKit configuration missing',
-          configured: false 
-        }), { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' } 
-        });
-      }
-      
-      return new NextResponse(JSON.stringify({ 
-        configured: true,
-        info: 'LiveKit configuration is available'
-      }), { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' } 
-      });
-    }
-    
-    if (!API_KEY || !API_SECRET || !LIVEKIT_URL) {
-      console.error('LiveKit environment variables are not set correctly');
-      console.error('API_KEY:', !!API_KEY, 'API_SECRET:', !!API_SECRET, 'LIVEKIT_URL:', LIVEKIT_URL);
-      return new NextResponse('Server configuration error: LiveKit credentials not properly configured', { status: 500 });
-    }
-    
-    // Check for valid room name
-    if (!roomName || roomName === 'undefined' || roomName === 'null') {
-      console.error('Invalid room name provided:', roomName);
-      return new NextResponse('Invalid room name: must not be empty or "undefined"', { status: 400 });
-    }
-    
-    // Sanitize room name
-    let sanitizedRoomName;
-    try {
-      sanitizedRoomName = sanitizeRoomName(roomName);
-    } catch (error) {
-      console.error('Room name sanitization failed:', error);
-      return new NextResponse('Invalid room name: contains invalid characters', { status: 400 });
-    }
-    
-    // Check LiveKit URL
     const livekitServerUrl = region ? getLiveKitURL(region) : LIVEKIT_URL;
-    console.log('Using LiveKit server URL:', livekitServerUrl);
-    
-    if (!livekitServerUrl) {
-      console.error('LiveKit server URL is undefined');
+    let randomParticipantPostfix = request.cookies.get(COOKIE_KEY)?.value;
+
+    if (livekitServerUrl === undefined) {
+      console.error('LiveKit URL is undefined. Region:', region);
       return new NextResponse('Invalid LiveKit server configuration', { status: 500 });
     }
 
-    if (!participantName) {
+    if (typeof roomName !== 'string') {
+      return new NextResponse('Missing required query parameter: roomName', { status: 400 });
+    }
+    if (participantName === null) {
       return new NextResponse('Missing required query parameter: participantName', { status: 400 });
     }
 
     // Generate participant token
-    let randomParticipantPostfix = request.cookies.get(COOKIE_KEY)?.value;
     if (!randomParticipantPostfix) {
-      randomParticipantPostfix = randomString(4);
+      randomParticipantPostfix = randomStringUtil(4);
     }
-    
-    const identity = `${participantName}__${randomParticipantPostfix}`;
-    const participantToken = createParticipantToken(
-      identity,
-      participantName,
-      metadata,
-      sanitizedRoomName
+    const participantToken = await createParticipantToken(
+      {
+        identity: `${participantName}__${randomParticipantPostfix}`,
+        name: participantName,
+        metadata,
+      },
+      roomName,
     );
 
-    // Check token is valid
-    if (!participantToken || typeof participantToken !== 'string') {
-      console.error('Failed to generate valid token');
-      return new NextResponse('Failed to generate connection token', { status: 500 });
-    }
-
     // Return connection details
-    const data = {
+    const data: ConnectionDetails = {
       serverUrl: livekitServerUrl,
-      roomName: sanitizedRoomName,
+      roomName: roomName,
       participantToken: participantToken,
       participantName: participantName,
     };
     
-    console.log('Returning connection details successfully');
-    
+    // Return response with connection details and set cookie
     return new NextResponse(JSON.stringify(data), {
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Set-Cookie': `${COOKIE_KEY}=${randomParticipantPostfix}; Path=/; HttpOnly; SameSite=Strict; Secure; Expires=${getCookieExpirationTime()}`,
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
       },
     });
   } catch (error) {
-    console.error('Error generating connection details:', error);
+    console.error('Error in /api/connection-details:', error);
     if (error instanceof Error) {
-      return new NextResponse(`Error: ${error.message}`, { status: 500 });
+      return new NextResponse(error.message, { status: 500 });
     }
-    return new NextResponse('Unknown error', { status: 500 });
+    return new NextResponse('Unknown error generating connection details', { status: 500 });
   }
+}
+
+function getCookieExpirationTime(): string {
+  const now = new Date();
+  const time = now.getTime();
+  const expireTime = time + 60 * 120 * 1000; // 2 hours from now
+  now.setTime(expireTime);
+  return now.toUTCString();
 } 
