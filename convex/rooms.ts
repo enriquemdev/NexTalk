@@ -1,5 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalAction, internalQuery } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
+import { internal } from "./_generated/api";
+import { Doc } from "./_generated/dataModel";
 
 /**
  * List all rooms with optional filtering
@@ -790,19 +793,6 @@ export const deleteRoom = mutation({
       });
     }
     
-    // Mark all webRTC signaling messages as processed
-    const signals = await ctx.db
-      .query("webrtcSignaling")
-      .withIndex("by_room_receiver")
-      .filter(q => q.eq(q.field("roomId"), args.roomId))
-      .collect();
-    
-    for (const signal of signals) {
-      await ctx.db.patch(signal._id, {
-        processed: true,
-      });
-    }
-    
     // Mark the room as deleted (soft delete)
     await ctx.db.patch(args.roomId, {
       isDeleted: true,
@@ -813,5 +803,113 @@ export const deleteRoom = mutation({
     });
     
     return true;
+  },
+});
+
+const BATCH_SIZE = 100; // Number of rooms to delete per batch
+
+/**
+ * Internal Mutation: Deletes a batch of rooms and their related data.
+ * This is designed to be called repeatedly by an action.
+ */
+export const internalDeleteRoomBatch = internalMutation({
+  args: { roomIds: v.array(v.id("rooms")) },
+  handler: async (ctx, { roomIds }) => {
+    console.log(`Deleting batch of ${roomIds.length} rooms...`);
+    for (const roomId of roomIds) {
+      // --- Delete Related Data First --- 
+      
+      // 1. Delete Participants
+      const participants = await ctx.db
+        .query("roomParticipants")
+        .withIndex("by_room", (q) => q.eq("roomId", roomId))
+        .collect();
+      await Promise.all(participants.map(p => ctx.db.delete(p._id)));
+      console.log(`Deleted ${participants.length} participants for room ${roomId}`);
+
+      // 2. Delete Messages (if applicable)
+      // Add similar logic if you have a messages table related to rooms
+      // const messages = await ctx.db.query("messages")... 
+      // await Promise.all(messages.map(m => ctx.db.delete(m._id)));
+
+      // 3. Delete Invitations (if applicable)
+      // const invitations = await ctx.db.query("roomInvitations")...
+      // await Promise.all(invitations.map(i => ctx.db.delete(i._id)));
+
+      // --- Delete the Room Itself --- 
+      await ctx.db.delete(roomId);
+      console.log(`Deleted room ${roomId}`);
+    }
+    console.log(`Finished deleting batch of ${roomIds.length} rooms.`);
+  },
+});
+
+/**
+ * Internal Action: Fetches and deletes all rooms in batches.
+ */
+export const deleteAllRoomsAction = internalAction({
+  args: { cursor: v.optional(v.string()) },
+  handler: async (ctx, { cursor }) => {
+    console.log("Starting deleteAllRoomsAction...");
+    const paginationOpts = { numItems: BATCH_SIZE, cursor: cursor ?? null };
+    
+    const results = await ctx.runQuery(internal.rooms.getAllRoomsInternal, { paginationOpts });
+
+    if (results.page.length > 0) {
+      const roomIds = results.page.map((room: Doc<"rooms">) => room._id);
+      console.log(`Found ${roomIds.length} rooms in this batch. Triggering delete mutation...`);
+      await ctx.runMutation(internal.rooms.internalDeleteRoomBatch, { roomIds });
+
+      // Schedule the next batch if not done
+      if (!results.isDone) {
+        console.log("Scheduling next batch deletion...");
+        await ctx.scheduler.runAfter(0, internal.rooms.deleteAllRoomsAction, { cursor: results.continueCursor });
+      } else {
+        console.log("All rooms processed for deletion.");
+      }
+    } else {
+      console.log("No more rooms found to delete.");
+    }
+    
+    console.log("Finished deleteAllRoomsAction execution.");
+    return null; // Actions must return a value or null
+  },
+});
+
+/**
+ * Internal Query: Helper to get all rooms for the cleanup action.
+ */
+export const getAllRoomsInternal = internalQuery({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    // Simply fetches all rooms regardless of isDeleted or other status for cleanup
+    return await ctx.db.query("rooms").paginate(args.paginationOpts);
+  },
+});
+
+/**
+ * Public Mutation: Triggered by the client to start the room cleanup process.
+ * Requires user to be authenticated.
+ */
+export const triggerDeleteAllRooms = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Must be logged in to perform this action.");
+    }
+    
+    // Optionally, add admin check here if needed:
+    // const user = await ctx.db.query('users').withIndex('by_token', q => q.eq('tokenIdentifier', identity.tokenIdentifier)).unique();
+    // if (user?.role !== 'admin') { 
+    //   throw new Error("Forbidden: Only admins can delete all rooms.");
+    // }
+
+    console.log(`User ${identity.subject} triggered deleteAllRooms action.`);
+    
+    // Schedule the action to run immediately
+    await ctx.scheduler.runAfter(0, internal.rooms.deleteAllRoomsAction, {});
+    
+    return { success: true, message: "Room cleanup process started." };
   },
 }); 
