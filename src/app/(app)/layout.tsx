@@ -15,20 +15,10 @@ const HomeLayout = ({
       <main className="h-screen bg-gradient-to-b from-background to-background/90 w-full">
         <div className="flex flex-col w-full">
           <header className="border-b">
-            <div className="container mx-auto py-4 px-4 flex items-center justify-start gap-4">
+            <div className="py-4 px-4 flex items-center justify-start gap-4">
               <SidebarTrigger />
-              <div className="flex items-center justify-between w-full">
-                <h1 className="text-2xl font-bold flex gap-2 items-center">
-                  <span>
-                    <SmartphoneNfcIcon className="size-6" />
-                  </span>
-                  <span>NextTalk</span>
-                </h1>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <ThemeToggle />
-                  </div>
-                </div>
+              <div className="flex items-center justify-end w-full">
+                <ThemeToggle />
               </div>
             </div>
           </header>

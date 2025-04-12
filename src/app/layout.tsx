@@ -38,24 +38,8 @@ export default function RootLayout({
               <AudioContextProvider>
                 <AuthSync />
                 {children}
-
                 <Toaster />
               </AudioContextProvider>
-              <AuthSync />
-              <main className="min-h-screen bg-gradient-to-b from-background to-background/90">
-                <header className="border-b">
-                  <div className="container mx-auto py-4 px-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold">NextTalk</h1>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <ThemeToggle />
-                      </div>
-                    </div>
-                  </div>
-                </header>
-                {children}
-              </main>
-              <Toaster />
             </ThemeProvider>
           </ConvexClientProvider>
         </ClerkProvider>
