@@ -18,7 +18,7 @@ import Link from "next/link";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" {...props} className="bg-gradient-to-b from-background to-muted/50">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
