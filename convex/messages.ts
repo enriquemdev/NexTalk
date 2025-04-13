@@ -52,7 +52,7 @@ export const getByRoom = query({
     const query = ctx.db
       .query("messages")
       .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))
-      .order("desc")
+      .order("asc")
       .filter((q) => q.eq(q.field("isDeleted"), false));
     
     const messages = await query.take(limit);
