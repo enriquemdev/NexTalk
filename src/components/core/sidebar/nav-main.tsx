@@ -24,7 +24,8 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useRooms } from "@/hooks/useRooms";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CreateRoomForm } from "@/components/CreateRoomForm";
+import Link from "next/link";
 
 const nav = [
   {
@@ -37,19 +38,19 @@ const nav = [
     title: "Coming up",
     url: "#",
     icon: MegaphoneIcon,
-    items: [{ name: "No available" }],
+    items: [{ _id: undefined, name: "No available" }],
   },
   {
     title: "Recordings",
     url: "#",
     icon: DiscIcon,
-    items: [{ name: "No available" }],
+    items: [{ _id: undefined, name: "No available" }],
   },
   {
     title: "Settings",
     url: "#",
     icon: Settings2,
-    items: [{ name: "No available" }],
+    items: [{ _id: undefined, name: "No available" }],
   },
 ];
 export function NavMain() {
@@ -58,15 +59,15 @@ export function NavMain() {
   const liveRooms = useLiveRooms({ type: "live", limit: 10 });
   const scheduledRooms = useScheduledRooms({ type: "scheduled", limit: 10 });
 
-  if (liveRooms?.length === 0) {
-    return (
-      <div className="p-4 rounded-lg border">
-        <Skeleton className="h-6 w-3/4 mb-2" />
-        <Skeleton className="h-4 w-full mb-2" />
-        <Skeleton className="h-4 w-1/2" />
-      </div>
-    );
-  }
+  // if (liveRooms?.length === 0) {
+  //   return (
+  //     <div className="p-4 rounded-lg border">
+  //       <Skeleton className="h-6 w-3/4 mb-2" />
+  //       <Skeleton className="h-4 w-full mb-2" />
+  //       <Skeleton className="h-4 w-1/2" />
+  //     </div>
+  //   );
+  // }
 
   const new_nav = nav.map((nav) => {
     switch (nav.title) {
@@ -74,14 +75,16 @@ export function NavMain() {
         return {
           ...nav,
           items:
-            liveRooms?.length === 0 ? [{ name: "No available" }] : liveRooms,
+            liveRooms?.length === 0
+              ? [{ name: "No available", _id: "" }]
+              : liveRooms,
         };
       case "Coming up":
         return {
           ...nav,
           items:
             scheduledRooms?.length === 0
-              ? [{ name: "No available" }]
+              ? [{ name: "No available", _id: "" }]
               : scheduledRooms,
         };
       default:
@@ -93,7 +96,12 @@ export function NavMain() {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Rooms</SidebarGroupLabel>
+      <div className="flex gap-4 items-center justify-between my-4">
+        <SidebarGroupLabel>Rooms</SidebarGroupLabel>
+        <SidebarGroupLabel>
+          <CreateRoomForm />
+        </SidebarGroupLabel>
+      </div>
       <SidebarMenu>
         {new_nav.map((item) => (
           <Collapsible
@@ -115,9 +123,15 @@ export function NavMain() {
                     subItem ? (
                       <SidebarMenuSubItem key={`${subItem.name}`}>
                         <SidebarMenuSubButton asChild>
-                          <a href={subItem.name}>
-                            <span>{subItem.name}</span>
-                          </a>
+                          {subItem._id !== "" ? (
+                            <Link href={`/rooms/${subItem._id}`}>
+                              <span>{subItem.name}</span>
+                            </Link>
+                          ) : (
+                            <Link href={`/`}>
+                              <span>{subItem.name}</span>
+                            </Link>
+                          )}
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ) : (
