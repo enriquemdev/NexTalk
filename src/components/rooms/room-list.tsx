@@ -75,9 +75,9 @@ export function RoomList({ type, userId, limit = 10 }: RoomListProps) {
 
   // Render the rooms
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 flex flex-wrap gap-4 justify-center">
       {rooms.map((room) => (
-        <div key={room._id.toString()} className="w-full">
+        <div key={room._id.toString()} className="w-full max-w-lg">
           <VideoRoomCard 
             roomName={room.name} 
             isActive={room.status === 'live'}
