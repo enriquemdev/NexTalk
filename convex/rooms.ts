@@ -4,6 +4,16 @@ import { paginationOptsValidator } from "convex/server";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 
+// Helper function to generate a random alphanumeric string
+function generateRandomCode(length: number): string {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
 /**
  * List all rooms with optional filtering
  */
@@ -65,15 +75,23 @@ export const create = mutation({
     description: v.optional(v.string()),
     userId: v.id("users"),
     scheduledFor: v.optional(v.number()),
-    isPrivate: v.optional(v.boolean()),
+    isPrivate: v.boolean(),
     isRecorded: v.optional(v.boolean()),
   },
-  returns: v.id("rooms"),
+  returns: v.object({
+    roomId: v.id("rooms"),
+    accessCode: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
     const now = Date.now();
     const isScheduled = args.scheduledFor && args.scheduledFor > now;
-    
-    // Create the room
+    const isPrivate = args.isPrivate;
+
+    let accessCode: string | undefined = undefined;
+    if (isPrivate) {
+      accessCode = generateRandomCode(6);
+    }
+
     const roomId = await ctx.db.insert("rooms", {
       name: args.name,
       description: args.description,
@@ -82,13 +100,13 @@ export const create = mutation({
       status: isScheduled ? "scheduled" : "live",
       scheduledFor: args.scheduledFor,
       startedAt: isScheduled ? undefined : now,
-      isPrivate: args.isPrivate ?? false,
+      isPrivate: isPrivate,
+      accessCode: accessCode,
       isRecorded: args.isRecorded ?? false,
       participantCount: isScheduled ? 0 : 1,
       peakParticipantCount: isScheduled ? 0 : 1,
     });
     
-    // If the room is live now, add the creator as a host participant
     if (!isScheduled) {
       await ctx.db.insert("roomParticipants", {
         roomId,
@@ -98,7 +116,6 @@ export const create = mutation({
         isMuted: false,
       });
       
-      // If recording is enabled, create a recording entry
       if (args.isRecorded) {
         await ctx.db.insert("recordings", {
           roomId,
@@ -108,7 +125,7 @@ export const create = mutation({
       }
     }
     
-    return roomId;
+    return { roomId, accessCode };
   },
 });
 

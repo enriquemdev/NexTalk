@@ -53,6 +53,7 @@ export default defineSchema({
     
     // Configuration
     isPrivate: v.boolean(), // Public or private (invite-only)
+    accessCode: v.optional(v.string()), // Access code for private rooms
     isRecorded: v.boolean(), // Whether recording is enabled
     isDeleted: v.optional(v.boolean()), // Soft delete marker
     deletedAt: v.optional(v.number()), // When the room was deleted
