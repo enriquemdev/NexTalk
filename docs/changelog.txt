@@ -2,6 +2,38 @@ CHANGELOG
 
 Date: 2024-08-20
 
+FEATURE: LiveKit Audio Streaming Integration
+
+Description: Replaced the custom WebRTC implementation with LiveKit for real-time audio streaming in rooms.
+
+Implementation Details:
+1. API Integration:
+   - Created a token generation API endpoint to generate secure LiveKit JWT tokens
+   - Integrated LiveKit server-side SDK for authentication
+   - Added environment variables for LiveKit configuration
+
+2. Client Components:
+   - Created a LiveKitAudioRoom component for handling audio streaming
+   - Added LiveKit React components and styles
+   - Implemented token fetching and room connection logic
+   - Improved audio quality and streaming reliability
+
+3. Infrastructure Improvements:
+   - Simplified room joining and leaving process
+   - Removed manual WebRTC peer connection handling
+   - Leveraged LiveKit's built-in STUN/TURN servers for better NAT traversal
+   - Enhanced audio quality with LiveKit's audio processing
+
+4. Codebase Cleanup:
+   - Removed custom AudioContextProvider
+   - Eliminated manual signal handling for WebRTC
+   - Simplified UI code by delegating audio handling to LiveKit
+   - Reduced potential for audio connection failures and bugs
+
+Purpose: This implementation replaces the custom WebRTC solution with LiveKit's proven, scalable infrastructure, improving audio quality, connection reliability, and room scalability while simplifying the codebase.
+
+Date: 2024-08-20
+
 FIX: Sign-In Page Import Error
 
 Description: Fixed a module not found error in the sign-in page caused by an incorrect import path.
@@ -445,4 +477,266 @@ Implementation Details:
 2. Removed the dependency on the external type import from "next-themes/dist/types"
 3. Used type assertion to resolve compatibility issues between the custom type and the next-themes library
 
-Purpose: This fix resolves a TypeScript build error by ensuring compatibility between our application's types and the next-themes library without relying on external type definitions that might not be available. 
+Purpose: This fix resolves a TypeScript build error by ensuring compatibility between our application's types and the next-themes library without relying on external type definitions that might not be available.
+
+Date: 2024-08-22
+
+FIX: Audio Streaming Functionality in Rooms
+
+Description: Fixed the microphone functionality and audio streaming in rooms to enable proper real-time communication between users.
+
+Implementation Details:
+1. Enhanced LiveKitAudioRoom Component:
+   - Added isMuted prop to control microphone state from parent components
+   - Implemented onMicrophoneStatusChange callback to sync UI with actual microphone status
+   - Added proper microphone control using LiveKit's setMicrophoneEnabled API
+   - Added event listeners for trackMuted/trackUnmuted events to maintain state synchronization
+
+2. Room Page Improvements:
+   - Connected the microphone button's UI state to LiveKit's actual microphone state
+   - Simplified the handleMicToggle function to work with LiveKit audio streaming
+   - Added proper toast notifications for microphone state changes
+   - Ensured microphone state is correctly initialized when joining a room
+
+3. Audio Stream Handling:
+   - Implemented proper audio track management through LiveKit's APIs
+   - Added audio state synchronization between UI and actual audio stream
+   - Improved error handling for microphone access issues
+   - Added initial microphone state setup when first connecting to a room
+
+Purpose: This implementation fixes a critical issue where users were unable to stream audio to other participants in the room, ensuring that when a user speaks in a room, other participants can hear them in real-time.
+
+Date: 2024-08-23
+
+FIX: LiveKit Token Generation and Audio Streaming
+
+Description: Fixed critical issues with the LiveKit integration that were preventing audio streaming between users in a room.
+
+Implementation Details:
+1. Token Generation Fix:
+   - Rewritten the token generation endpoint to properly create a valid JWT token
+   - Added proper Cache-Control headers to prevent token caching
+   - Improved error handling and logging for better debugging
+   - Fixed the token extraction in the client to correctly parse the JWT
+
+2. LiveKit Connection Enhancements:
+   - Added detailed connection status and error handling
+   - Improved the token fetching process with better error reporting
+   - Added explicit connect parameter to the LiveKit Room component
+   - Fixed server URL configuration to use the environment variable
+
+3. Audio Track Management:
+   - Implemented proper mic control through LiveKit's setMicrophoneEnabled API
+   - Added event handlers for track muting/unmuting
+   - Improved synchronization between UI state and actual microphone state
+   - Added connection and audio status logging for debugging
+
+Purpose: This fix resolves a critical issue that prevented users from hearing each other in audio rooms, ensuring that users can now stream audio to other participants in real-time. The implementation is now more robust with better error handling and follows the patterns from the official LiveKit Meet example repository.
+
+Date: 2024-08-24
+
+FIX: Convex Import Path Issue in Build Process
+
+Description: Fixed an issue where the build process was failing due to incorrect import paths for Convex generated files.
+
+Implementation Details:
+1. Updated import paths across the codebase:
+   - Changed import statements from '@/convex/_generated/api' to 'convex/_generated/api'
+   - Changed import statements from '@/convex/_generated/dataModel' to 'convex/_generated/dataModel'
+   - Ensured consistent use of imports according to the tsconfig.json path mappings
+
+2. Path Configuration Review:
+   - Identified the correct path mappings in tsconfig.json:
+     - '@/*' maps to './src/*'
+     - 'convex/*' maps to './convex/*'
+   - Applied the correct path mapping consistently across the codebase
+
+Purpose: This fix resolves a critical build error that prevented the application from compiling for production. The corrected import paths ensure that the Next.js build process can properly locate and bundle the Convex generated files.
+
+Date: 2024-08-25
+
+FEATURE: LiveKit Video Conferencing
+
+Description: Implemented full video conferencing functionality using LiveKit, allowing users to create and join video rooms with real-time video and audio.
+
+Implementation Details:
+1. API Integration:
+   - Created a connection-details API endpoint that generates secure LiveKit JWT tokens
+   - Implemented room creation and joining functionality similar to LiveKit Meet
+   - Added support for video quality settings and codec selection
+
+2. Video Room Components:
+   - Added PageClientImpl component for handling the video conferencing UI
+   - Implemented PreJoin page for setting up camera and microphone before joining
+   - Added VideoConference component with full video, audio, and chat functionality
+   - Created localStorage-based tracking of recent video rooms
+
+3. User Interface:
+   - Added VideoRoomsSection to the homepage displaying recent video rooms
+   - Implemented CreateVideoRoomButton for creating new video rooms
+   - Created VideoRoomCard component for displaying video rooms
+   - Added routing for video rooms at /video-rooms/[roomName]
+
+4. Features:
+   - High-quality video streaming with adaptive bitrate
+   - Real-time audio with noise suppression
+   - Text chat with link formatting
+   - Screen sharing functionality
+   - Room sharing capabilities
+   - Optional end-to-end encryption (E2EE)
+
+Purpose: This implementation significantly expands NextTalk's capabilities by adding high-quality video conferencing alongside the existing audio rooms. The video conferencing feature leverages LiveKit's proven infrastructure to provide reliable, scalable video communication with minimal latency.
+
+Date: 2024-08-26
+
+FIX: Video Room Page TypeScript Errors
+
+Description: Fixed TypeScript errors in the video room page components that were preventing the Next.js build process from completing successfully.
+
+Implementation Details:
+1. Restructured the page component architecture:
+   - Created a minimal server component in page.tsx that delegates to a client component
+   - Moved component logic to a dedicated 'use client' component
+   - Used proper TypeScript type definitions compatible with Next.js 15.2.4
+   - Fixed metadata generation to work properly with the new structure
+
+2. Architecture Improvements:
+   - Separated concerns between server and client components
+   - Fixed the Next.js build error related to Promise-based params
+   - Maintained all existing functionality while fixing type errors
+
+Purpose: This fix resolves a critical build error that was preventing the deployment of the application. The error was related to Next.js 15.2.4's typings for page props and params, which now expect Promise-based fields.
+
+Date: 2024-09-06
+
+FIX: TypeScript build error in `src/app/rooms/[id]/page.tsx`
+
+Description: Updated the room page component to handle Promise-based parameters in Next.js 15.2.4.
+
+Implementation Details:
+1. Refactored the RoomPage component to properly await Promise-based params
+2. Updated the generateMetadata function to handle Promise-based params
+3. Maintained all page functionality while fixing TypeScript errors
+
+Purpose: This fix resolves a critical build error related to Next.js 15.2.4's requirement for Promise-based params in page components. The updated implementation ensures type compatibility with Next.js 15.2.4 while preserving all existing functionality.
+
+Date: 2024-09-06
+
+FIX: Build error related to reference project
+
+Description: Fixed a build error by excluding the reference project from TypeScript checking.
+
+Implementation Details:
+1. Updated tsconfig.json to exclude the "reference-project/**/*" pattern from TypeScript compilation
+2. Maintained the reference project as a read-only reference without modifying its contents
+3. Ensured the build process ignores type errors in the reference project
+
+Purpose: This fix allows the Next.js application to build successfully without being affected by type errors in the reference project, while still keeping the reference code available for documentation and learning purposes.
+
+Date: 2024-09-06
+
+FIX: LiveKit Video Room Connection Issues
+
+Description: Fixed issues with LiveKit token generation and connection handling in video rooms.
+
+Implementation Details:
+1. Enhanced the /api/connection-details endpoint with:
+   - Improved error handling and logging
+   - Better environment variable handling with fallbacks
+   - Forced dynamic responses to prevent caching issues
+   - Detailed validation for room names and parameters
+   
+2. Added robustness to the video room client:
+   - Initial LiveKit configuration check before connection attempt
+   - Retry mechanism for connection failures (up to 3 attempts)
+   - Better error handling and user feedback
+   - Improved logging for troubleshooting
+
+3. Environment Variable Handling:
+   - Added fallback to use NEXT_PUBLIC_LIVEKIT_URL if LIVEKIT_URL is not available
+   - Added diagnostic logging to show which variables are set
+   - Improved error messages for missing configurations
+
+Purpose: This fix resolves the "Failed to connect: Failed to get connection details: Failed to generate connection token" error when users try to join video rooms. The implementation is now more robust and provides better error feedback, while also adding retry logic to handle transient network issues.
+
+Date: 2024-09-06
+
+FIX: Video Camera Compatibility Issues in VideoRooms
+
+Description: Fixed "OverconstrainedError" when attempting to join video rooms with cameras that don't support high resolutions.
+
+Implementation Details:
+1. Reduced default video resolution settings:
+   - Changed high quality mode from 1080p to 720p
+   - Changed standard quality mode from 720p to 540p
+   - Adjusted simulcast layers to use more compatible resolutions
+
+2. Enhanced error handling:
+   - Added specific error message for OverconstrainedError to guide users
+   - Improved user feedback for camera compatibility issues
+   - Added fallback suggestions when camera can't meet requested constraints
+
+3. Default codec improvements:
+   - Changed default video codec to VP8 for maximum browser compatibility
+   - Only use more advanced codecs (VP9, H264) when explicitly requested
+   - Implemented better codec fallback for end-to-end encryption
+
+Purpose: This fix resolves the "OverconstrainedError" that users were encountering when trying to join video rooms. The more compatible video settings ensure that users with a wider range of cameras (including older webcams and low-end devices) can successfully join video rooms without errors.
+
+Date: 2024-09-06
+
+REFAC: Aligned Video Room Connection with Reference Project
+
+Description: Replaced the LiveKit connection logic in video rooms with the exact implementation from the reference project to resolve persistent connection and token generation errors.
+
+Implementation Details:
+1. API Endpoint (`/api/connection-details`):
+   - Replaced the `GET` handler and `createParticipantToken` function with the code from `reference-project`.
+   - Ensured environment variables (API Key, Secret, URL) are handled identically.
+   - Replicated the cookie setting logic for participant identity postfix.
+
+2. Client-Side Logic (`page-client.tsx`):
+   - Replaced `handlePreJoinSubmit` to fetch connection details exactly as in `reference-project`.
+   - Replaced `handlePreJoinError` with the simpler error handling from `reference-project` (using `unknown` type for error).
+   - Ensured the `CONN_DETAILS_ENDPOINT` constant is used correctly.
+
+3. Utility Functions & Types:
+   - Verified `ConnectionDetails` type in `src/lib/types.ts` matches the reference.
+   - Ensured the `randomString` utility in `src/lib/client-utils.ts` is available and used consistently.
+
+Purpose: This refactor standardizes the video room connection flow based on a proven, working implementation. By mirroring the reference project's logic, it aims to eliminate the recurring "Failed to generate connection token" errors and improve the overall stability of joining video rooms.
+
+Date: 2024-09-07
+
+FIX: Restore Create Video Room Button
+
+Description: Restored the button for creating new video rooms on the main page, which was accidentally removed during previous refactoring.
+
+Implementation Details:
+- Re-imported the `CreateVideoRoomButton` component in `src/app/page.tsx`.
+- Placed the `CreateVideoRoomButton` next to the "Active Video Rooms" heading using Flexbox for layout.
+
+Purpose: This fix ensures users can easily create new video rooms directly from the main page, restoring essential functionality.
+
+Date: 2024-09-08
+
+CLEANUP: Removed Old Audio-Only Room Functionality
+
+Description: Removed outdated UI components, Convex schema definitions, and Convex functions related to the old audio-only room system (based on manual WebRTC signaling) to streamline the codebase and focus on the LiveKit-based video room implementation.
+
+Implementation Details:
+1. Deleted UI Components:
+   - Removed `src/components/rooms/room-card.tsx`
+   - Removed `src/components/rooms/create-room-form.tsx`
+   - Removed `src/components/rooms/create-room-button.tsx`
+2. Updated Component Usage:
+   - Modified `src/components/rooms/room-list.tsx` to use `VideoRoomCard` instead of the deleted `RoomCard`.
+   - Removed commented-out import of `CreateRoomButton` in `src/app/page.tsx`.
+   - Changed "Join Audio Room" button text to "Join Room" in `src/app/rooms/[id]/RoomClientComponent.tsx`.
+3. Convex Schema Cleanup:
+   - Removed the `webrtcSignaling` table definition from `convex/schema.ts` as it was specific to the old manual signaling.
+4. Convex Function Cleanup:
+   - Deleted the entire `convex/webrtc.ts` file which contained functions solely for managing the `webrtcSignaling` table.
+   - Kept `convex/rooms.ts` largely intact as its functions manage persistent room metadata (`rooms` table) and participants (`roomParticipants`), which are still relevant.
+
+Purpose: This cleanup removes redundant code associated with the deprecated audio-only rooms, resulting in a cleaner, more maintainable codebase focused solely on the current LiveKit-based video room functionality. 

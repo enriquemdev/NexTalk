@@ -53,3 +53,6 @@ You are an expert full-stack developer proficient in TypeScript, React, Next.js,
 3. **Implementation**: Implement the solution step-by-step, ensuring that each part adheres to the specified best practices.
 4. **Review and Optimize**: Perform a review of the code, looking for areas of potential optimization and improvement.
 5. **Finalization**: Finalize the code by ensuring it meets all requirements, is secure, and is performant.
+
+NOTES:
+- Be careful to not use hooks in server components, if you need to use hooks for something in a server component, create a client component in a separate file and call it from the server component, and in the client component use hooks as required.
