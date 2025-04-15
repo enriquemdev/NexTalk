@@ -51,16 +51,23 @@ export function VideoRoomCard({ roomName, isActive = true }: VideoRoomCardProps)
         </div>
       </CardContent>
       
-      <CardFooter className="flex gap-2 w-full">
+      <CardFooter className="flex gap-2 w-full justify-between">
         <Button 
           variant="default"
-          className="w-1/2 cursor-pointer"
+          className="w-1/3 cursor-pointer"
           onClick={handleJoinRoom}
         >
-          Join Room
+          Join Video Room
         </Button>
         <Button 
-          className="w-1/2 p-2 cursor-pointer bg-secondary" 
+          variant="default"
+          className="w-1/3 cursor-pointer"
+          onClick={handleJoinRoom}
+        >
+          Join Chat Room
+        </Button>
+        <Button 
+          className="w-1/3 cursor-pointer bg-secondary" 
           onClick={handleShareRoom}
           title="Share room link"
         >
