@@ -3,14 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,21 +14,9 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Kbd } from "./kbd";
-import { Id } from "convex/_generated/dataModel";
 import { useUsers } from "@/hooks/useUsers";
-
-interface User {
-  _id: Id<"users">;
-  _creationTime: number;
-  image?: string | undefined;
-  name?: string | undefined;
-  email?: string | undefined;
-  bio?: string | undefined;
-  lastSeen?: number | undefined;
-  isOnline?: boolean | undefined;
-  tokenIdentifier: string;
-  createdAt: number;
-}
+import { UserProfile } from "./user-profile";
+import { User } from "@/infrastructure/interfaces/user";
 
 export default function SearchBar() {
   // Sample user data
@@ -53,7 +33,6 @@ export default function SearchBar() {
   useEffect(() => {
     if (getUsers) {
       setUsers(getUsers);
-      console.log(getUsers);
     }
   }, [getUsers]);
 
@@ -68,24 +47,6 @@ export default function SearchBar() {
     setIsCommandOpen(false);
     setIsModalOpen(true);
   };
-
-  // Toggle follow status
-  // const toggleFollow = () => {
-  //   if (!selectedUser) return;
-
-  //   setUsers((prevUsers) =>
-  //     prevUsers.map((user) =>
-  //       user._id === selectedUser._id
-  //         ? { ...user, isFollowing: !user.isFollowing }
-  //         : user
-  //     )
-  //   );
-
-  //   setSelectedUser((prev) => {
-  //     if (!prev) return null;
-  //     return { ...prev, isFollowing: !prev.isFollowing };
-  //   });
-  // };
 
   // Focus the input when the command dialog opens
   useEffect(() => {
@@ -170,50 +131,11 @@ export default function SearchBar() {
       </CommandDialog>
 
       {selectedUser && (
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>User Profile</DialogTitle>
-              <DialogDescription>
-                View detailed information about this user
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col items-center py-4">
-              <Avatar className="h-24 w-24 mb-4">
-                <AvatarImage
-                  src={selectedUser.image || "/placeholder.svg"}
-                  alt={selectedUser.name}
-                />
-                <AvatarFallback>
-                  {selectedUser.name?.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <h2 className="text-xl font-bold">{selectedUser.name}</h2>
-              <p className="text-muted-foreground mb-2">@{selectedUser.name}</p>
-              <p className="text-center mb-4">{selectedUser.bio}</p>
-
-              <div className="flex gap-4 mb-6">
-                <div className="text-center">
-                  {/* <div className="font-bold">{selectedUser.followers}</div> */}
-                  <div className="text-sm text-muted-foreground">Followers</div>
-                </div>
-                <div className="text-center">
-                  {/* <div className="font-bold">{selectedUser.following}</div> */}
-                  <div className="text-sm text-muted-foreground">Following</div>
-                </div>
-              </div>
-
-              <Button
-                // onClick={toggleFollow}
-                // variant={selectedUser.isFollowing ? "outline" : "default"}
-                className="w-full"
-              >
-                {/* {selectedUser.isFollowing ? "Unfollow" : "Follow"} */}
-                Follow
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <UserProfile
+          isModalOpen={isModalOpen}
+          selectedUser={selectedUser}
+          setIsModalOpen={setIsModalOpen}
+        />
       )}
     </div>
   );
