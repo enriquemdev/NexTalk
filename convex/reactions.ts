@@ -7,6 +7,7 @@ import { mutation, query } from "./_generated/server";
 export const sendRoomReaction = mutation({
   args: {
     roomId: v.id("rooms"),
+    messageId: v.id("messages"),
     userId: v.id("users"),
     type: v.string(), // emoji type
   },
@@ -19,19 +20,20 @@ export const sendRoomReaction = mutation({
       )
       .filter((q) => q.eq(q.field("leftAt"), undefined))
       .first();
-    
+
     if (!participant) {
       throw new Error("You must be in the room to send a reaction");
     }
-    
+
     // Create a reaction without a messageId to indicate it's for the room itself
     const reactionId = await ctx.db.insert("reactions", {
       roomId: args.roomId,
       userId: args.userId,
+      messageId: args.messageId,
       type: args.type,
       createdAt: Date.now(),
     });
-    
+
     return reactionId;
   },
 });
@@ -52,25 +54,21 @@ export const getRecentRoomReactions = query({
       .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))
       .filter((q) => q.eq(q.field("messageId"), undefined)) // Only room reactions, not message reactions
       .order("desc");
-    
+
     if (args.since !== undefined) {
       query = query.filter((q) => q.gt(q.field("createdAt"), args.since!));
     }
-    
+
     const reactions = await query.take(limit);
-    
+
     // Get user info for each reaction
     const userIds = [...new Set(reactions.map((r) => r.userId))];
-    const users = await Promise.all(
-      userIds.map((id) => ctx.db.get(id))
-    );
-    
+    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
+
     const userMap = Object.fromEntries(
-      users
-        .filter(Boolean)
-        .map((user) => [user?._id.toString(), user])
+      users.filter(Boolean).map((user) => [user?._id.toString(), user])
     );
-    
+
     // Combine reaction data with user info
     return reactions.map((reaction) => ({
       reaction,
@@ -98,17 +96,17 @@ export const getReactionCounts = query({
       .query("reactions")
       .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))
       .filter((q) => q.eq(q.field("messageId"), undefined)); // Only room reactions, not message reactions
-    
+
     if (args.timeWindow) {
       const since = Date.now() - args.timeWindow;
       query = query.filter((q) => q.gt(q.field("createdAt"), since));
     }
-    
+
     const reactions = await query.collect();
-    
+
     // Group and count reactions by type
     const counts: Record<string, number> = {};
-    
+
     for (const reaction of reactions) {
       const type = reaction.type;
       if (!counts[type]) {
@@ -116,7 +114,7 @@ export const getReactionCounts = query({
       }
       counts[type]++;
     }
-    
+
     return counts;
   },
 });
@@ -134,19 +132,19 @@ export const cleanupOldReactions = mutation({
     const oldReactions = await ctx.db
       .query("reactions")
       .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.lt(q.field("createdAt"), args.olderThan),
           q.eq(q.field("messageId"), undefined) // Only clean up room reactions, not message reactions
         )
       )
       .collect();
-    
+
     // Delete old reactions
     for (const reaction of oldReactions) {
       await ctx.db.delete(reaction._id);
     }
-    
+
     return oldReactions.length;
   },
-}); 
+});

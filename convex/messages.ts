@@ -21,11 +21,11 @@ export const send = mutation({
       )
       .filter((q) => q.eq(q.field("leftAt"), undefined))
       .first();
-    
+
     if (!participant) {
       throw new Error("You must be in the room to send a message");
     }
-    
+
     const messageId = await ctx.db.insert("messages", {
       roomId: args.roomId,
       userId: args.userId,
@@ -34,7 +34,7 @@ export const send = mutation({
       createdAt: Date.now(),
       isDeleted: false,
     });
-    
+
     return messageId;
   },
 });
@@ -54,29 +54,51 @@ export const getByRoom = query({
       .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))
       .order("asc")
       .filter((q) => q.eq(q.field("isDeleted"), false));
-    
+
     const messages = await query.take(limit);
-    
+
     // Get user info for each message
     const userIds = [...new Set(messages.map((m) => m.userId))];
     const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
-    
+
     const userMap = Object.fromEntries(
-      users
-        .filter(Boolean)
-        .map((user) => [user?._id.toString(), user])
+      users.filter(Boolean).map((user) => [user?._id.toString(), user])
     );
-    
-    // Combine message data with user info
-    return messages.map((message) => ({
+
+    // Get reactions for each message
+    const reactionsList = await Promise.all(
+      messages.map((message) =>
+        ctx.db
+          .query("reactions")
+          .withIndex("by_message", (q) => q.eq("messageId", message._id))
+          .collect()
+      )
+    );
+
+    // Group reactions by type for each message
+    const reactionsMap = reactionsList.map((reactions) => {
+      const grouped: Record<string, { count: number; userIds: string[] }> = {};
+      for (const reaction of reactions) {
+        if (!grouped[reaction.type]) {
+          grouped[reaction.type] = { count: 0, userIds: [] };
+        }
+        grouped[reaction.type].count++;
+        grouped[reaction.type].userIds.push(reaction.userId.toString());
+      }
+      return grouped;
+    });
+
+    // Combine message data with user info and reactions
+    return messages.map((message, idx) => ({
       message,
-      user: userMap[message.userId.toString()] 
+      user: userMap[message.userId.toString()]
         ? {
             _id: userMap[message.userId.toString()]?._id,
             name: userMap[message.userId.toString()]?.name,
             image: userMap[message.userId.toString()]?.image,
           }
         : null,
+      reactions: reactionsMap[idx],
     }));
   },
 });
@@ -94,7 +116,7 @@ export const deleteMessage = mutation({
     if (!message) {
       throw new Error("Message not found");
     }
-    
+
     // Only the message author or a room host/co-host can delete messages
     if (message.userId !== args.userId) {
       // Check if the user is a host or co-host
@@ -102,7 +124,7 @@ export const deleteMessage = mutation({
       if (!room) {
         throw new Error("Room not found");
       }
-      
+
       const participant = await ctx.db
         .query("roomParticipants")
         .withIndex("by_room_user", (q) =>
@@ -110,16 +132,19 @@ export const deleteMessage = mutation({
         )
         .filter((q) => q.eq(q.field("leftAt"), undefined))
         .first();
-      
-      if (!participant || (participant.role !== "host" && participant.role !== "co-host")) {
+
+      if (
+        !participant ||
+        (participant.role !== "host" && participant.role !== "co-host")
+      ) {
         throw new Error("You don't have permission to delete this message");
       }
     }
-    
+
     await ctx.db.patch(args.messageId, {
       isDeleted: true,
     });
-    
+
     return true;
   },
 });
@@ -143,23 +168,23 @@ export const addReaction = mutation({
       )
       .filter((q) => q.eq(q.field("leftAt"), undefined))
       .first();
-    
+
     if (!participant) {
       throw new Error("You must be in the room to react to messages");
     }
-    
+
     // Check if the reaction already exists
     const existingReaction = await ctx.db
       .query("reactions")
       .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("userId"), args.userId),
           q.eq(q.field("type"), args.type)
         )
       )
       .first();
-    
+
     if (existingReaction) {
       // Remove the reaction if it already exists (toggle behavior)
       await ctx.db.delete(existingReaction._id);
@@ -173,7 +198,7 @@ export const addReaction = mutation({
         type: args.type,
         createdAt: Date.now(),
       });
-      
+
       return reactionId;
     }
   },
@@ -191,10 +216,13 @@ export const getReactions = query({
       .query("reactions")
       .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
       .collect();
-    
+
     // Group reactions by type
-    const groupedReactions: Record<string, { count: number; users: Id<"users">[] }> = {};
-    
+    const groupedReactions: Record<
+      string,
+      { count: number; users: Id<"users">[] }
+    > = {};
+
     for (const reaction of reactions) {
       const type = reaction.type;
       if (!groupedReactions[type]) {
@@ -203,11 +231,11 @@ export const getReactions = query({
           users: [],
         };
       }
-      
+
       groupedReactions[type].count++;
       groupedReactions[type].users.push(reaction.userId);
     }
-    
+
     return groupedReactions;
   },
-}); 
+});
