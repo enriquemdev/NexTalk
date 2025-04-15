@@ -6,6 +6,7 @@ export const useUsers = () => {
     const users = useQuery(api.users.search);
     return users;
   };
+
   return {
     useGetUsers,
   };
