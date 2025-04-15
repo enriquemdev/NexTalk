@@ -1,22 +1,21 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from "@/components/ui/use-toast";
-import { useQuery, useMutation } from "convex/react";
+// import React, { useEffect, useState, useMemo } from "react";
+// import { Button } from "@/components/ui/button";
+// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+// import { useToast } from "@/components/ui/use-toast";
+import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
-import { Id, Doc } from "convex/_generated/dataModel";
-import { LiveKitAudioRoom } from "@/components/rooms/livekit-room";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { formatDistanceToNow } from "date-fns";
-import { Users2Icon, Mic, MicOff, FileText } from "lucide-react";
+import { Id } from "convex/_generated/dataModel";
+// import { LiveKitAudioRoom } from "@/components/rooms/livekit-room";
+// import { useCurrentUser } from "@/hooks/useCurrentUser";
+// import { Badge } from "@/components/ui/badge";
+// import { Card, CardContent } from "@/components/ui/card";
+// import { formatDistanceToNow } from "date-fns";
+// import { Users2Icon, Mic, MicOff, FileText } from "lucide-react";
 import { RoomHeader } from "@/components/rooms/chat/room-header";
 import { MessageList } from "@/components/rooms/chat/message-list";
 import { MessageInput } from "@/components/rooms/chat/message-input";
-import { SummaryRoomModal } from "@/components/rooms/chat/summary-room-modal";
 
 interface RoomClientComponentProps {
   roomId: Id<"rooms">;
@@ -25,205 +24,205 @@ interface RoomClientComponentProps {
 const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
   roomId,
 }) => {
-  const { userId, user } = useCurrentUser();
-  const { toast } = useToast();
+  // const { userId, user } = useCurrentUser();
+  // const { toast } = useToast();
 
   // Fetch room data
   const room = useQuery(api.rooms.get, { roomId });
 
-  // Fetch room participants
-  const participants = useQuery(api.rooms.getParticipants, { roomId }) || [];
+  // // Fetch room participants
+  // const participants = useQuery(api.rooms.getParticipants, { roomId }) || [];
 
-  // Get room creator data
-  const creatorId = room?.createdBy;
-  const roomCreator = useQuery(
-    api.users.get,
-    creatorId ? { userId: creatorId } : "skip"
-  );
+  // // Get room creator data
+  // const creatorId = room?.createdBy;
+  // const roomCreator = useQuery(
+  //   api.users.get,
+  //   creatorId ? { userId: creatorId } : "skip"
+  // );
 
-  // Get all participant user data in one batch
-  const participantUserIds = useMemo(() => {
-    return participants.filter((p) => !p.leftAt).map((p) => p.userId);
-  }, [participants]);
+  // // Get all participant user data in one batch
+  // const participantUserIds = useMemo(() => {
+  //   return participants.filter((p) => !p.leftAt).map((p) => p.userId);
+  // }, [participants]);
 
-  // Fetch all participant user data
-  const participantUsers =
-    useQuery(
-      api.users.getMultiple,
-      participantUserIds.length > 0 ? { userIds: participantUserIds } : "skip"
-    ) || [];
+  // // Fetch all participant user data
+  // const participantUsers =
+  //   useQuery(
+  //     api.users.getMultiple,
+  //     participantUserIds.length > 0 ? { userIds: participantUserIds } : "skip"
+  //   ) || [];
 
-  // Create a map of user data for easy lookup
-  const userDataMap = useMemo(() => {
-    const map = new Map<Id<"users">, Doc<"users">>();
-    participantUsers.forEach((user) => {
-      if (user) map.set(user._id, user);
-    });
-    return map;
-  }, [participantUsers]);
+  // // Create a map of user data for easy lookup
+  // const userDataMap = useMemo(() => {
+  //   const map = new Map<Id<"users">, Doc<"users">>();
+  //   participantUsers.forEach((user) => {
+  //     if (user) map.set(user._id, user);
+  //   });
+  //   return map;
+  // }, [participantUsers]);
 
-  // Mutations
-  const joinRoomMutation = useMutation(api.rooms.joinRoom);
-  const leaveRoomMutation = useMutation(api.rooms.leaveRoom);
-  const deleteRoomMutation = useMutation(api.rooms.deleteRoom);
+  // // Mutations
+  // const joinRoomMutation = useMutation(api.rooms.joinRoom);
+  // const leaveRoomMutation = useMutation(api.rooms.leaveRoom);
+  // const deleteRoomMutation = useMutation(api.rooms.deleteRoom);
 
   // State
-  const [isJoining, setIsJoining] = useState(false);
-  const [isLeaving, setIsLeaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [confirmLeave, setConfirmLeave] = useState(false);
-  const [myParticipantId, setMyParticipantId] =
-    useState<Id<"roomParticipants"> | null>(null);
-  const [showLiveKit, setShowLiveKit] = useState(false);
-  const [isMicMuted, setIsMicMuted] = useState(false);
+  // const [isJoining, setIsJoining] = useState(false);
+  // const [isLeaving, setIsLeaving] = useState(false);
+  // const [isDeleting, setIsDeleting] = useState(false);
+  // const [confirmDelete, setConfirmDelete] = useState(false);
+  // const [confirmLeave, setConfirmLeave] = useState(false);
+  // const [myParticipantId, setMyParticipantId] =
+  //   useState<Id<"roomParticipants"> | null>(null);
+  // const [showLiveKit, setShowLiveKit] = useState(false);
+  // const [isMicMuted, setIsMicMuted] = useState(false);
 
   // Find my participant record
-  const myParticipant = participants.find(
-    (p) => p.userId === userId && !p.leftAt
-  );
+  // const myParticipant = participants.find(
+  //   (p) => p.userId === userId && !p.leftAt
+  // );
 
   // Join the room
-  const joinRoom = async () => {
-    if (!userId) {
-      toast({
-        title: "Authentication Required",
-        description: "You must be logged in to join a room",
-        variant: "destructive",
-      });
-      return;
-    }
+  // const joinRoom = async () => {
+  //   if (!userId) {
+  //     toast({
+  //       title: "Authentication Required",
+  //       description: "You must be logged in to join a room",
+  //       variant: "destructive",
+  //     });
+  //     return;
+  //   }
 
-    setIsJoining(true);
+  //   setIsJoining(true);
 
-    try {
-      // Join room in database
-      const participantId = await joinRoomMutation({ roomId, userId });
-      setMyParticipantId(participantId);
-      setShowLiveKit(true);
+  //   try {
+  //     // Join room in database
+  //     const participantId = await joinRoomMutation({ roomId, userId });
+  //     setMyParticipantId(participantId);
+  //     setShowLiveKit(true);
 
-      toast({
-        title: "Joined Room",
-        description: "You've successfully joined the audio room",
-      });
-    } catch (error) {
-      console.error("Failed to join room:", error);
-      toast({
-        title: "Failed to Join",
-        description:
-          error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsJoining(false);
-    }
-  };
+  //     toast({
+  //       title: "Joined Room",
+  //       description: "You've successfully joined the audio room",
+  //     });
+  //   } catch (error) {
+  //     console.error("Failed to join room:", error);
+  //     toast({
+  //       title: "Failed to Join",
+  //       description:
+  //         error instanceof Error ? error.message : "An error occurred",
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setIsJoining(false);
+  //   }
+  // };
 
   // Leave the room
-  const leaveRoom = async () => {
-    if (!myParticipantId) return;
+  // const leaveRoom = async () => {
+  //   if (!myParticipantId) return;
 
-    // Reset confirm state if it was open
-    setConfirmLeave(false);
-    setIsLeaving(true);
+  //   // Reset confirm state if it was open
+  //   setConfirmLeave(false);
+  //   setIsLeaving(true);
 
-    try {
-      await leaveRoomMutation({ participantId: myParticipantId });
+  //   try {
+  //     await leaveRoomMutation({ participantId: myParticipantId });
 
-      // Hide LiveKit room
-      setShowLiveKit(false);
+  //     // Hide LiveKit room
+  //     setShowLiveKit(false);
 
-      toast({
-        title: "Left Room",
-        description: "You've left the audio room",
-      });
+  //     toast({
+  //       title: "Left Room",
+  //       description: "You've left the audio room",
+  //     });
 
-      setMyParticipantId(null);
-    } catch (error) {
-      console.error("Failed to leave room:", error);
-      toast({
-        title: "Error",
-        description: "Failed to leave room properly",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLeaving(false);
-    }
-  };
+  //     setMyParticipantId(null);
+  //   } catch (error) {
+  //     console.error("Failed to leave room:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to leave room properly",
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setIsLeaving(false);
+  //   }
+  // };
 
   // Delete the room
-  const deleteRoom = async () => {
-    if (!userId || !room) return;
+  // const deleteRoom = async () => {
+  //   if (!userId || !room) return;
 
-    setIsDeleting(true);
+  //   setIsDeleting(true);
 
-    try {
-      // First, leave the room if we're in it
-      if (myParticipantId) {
-        await leaveRoomMutation({ participantId: myParticipantId });
-        setShowLiveKit(false);
-        setMyParticipantId(null);
-      }
+  //   try {
+  //     // First, leave the room if we're in it
+  //     if (myParticipantId) {
+  //       await leaveRoomMutation({ participantId: myParticipantId });
+  //       setShowLiveKit(false);
+  //       setMyParticipantId(null);
+  //     }
 
-      // Then delete the room
-      await deleteRoomMutation({ roomId, userId });
+  //     // Then delete the room
+  //     await deleteRoomMutation({ roomId, userId });
 
-      toast({
-        title: "Room Deleted",
-        description: "The room has been deleted successfully",
-      });
+  //     toast({
+  //       title: "Room Deleted",
+  //       description: "The room has been deleted successfully",
+  //     });
 
-      // Navigate back to home page
-      window.location.href = "/";
-    } catch (error) {
-      console.error("Failed to delete room:", error);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to delete room",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-      setConfirmDelete(false);
-    }
-  };
+  //     // Navigate back to home page
+  //     window.location.href = "/";
+  //   } catch (error) {
+  //     console.error("Failed to delete room:", error);
+  //     toast({
+  //       title: "Error",
+  //       description:
+  //         error instanceof Error ? error.message : "Failed to delete room",
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setIsDeleting(false);
+  //     setConfirmDelete(false);
+  //   }
+  // };
 
   // Clean up when leaving the page
-  useEffect(() => {
-    return () => {
-      // If user navigates away, leave the room
-      if (myParticipantId) {
-        leaveRoom();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myParticipantId]);
+  // useEffect(() => {
+  //   return () => {
+  //     // If user navigates away, leave the room
+  //     if (myParticipantId) {
+  //       leaveRoom();
+  //     }
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [myParticipantId]);
 
-  const handleMicToggle = () => {
-    if (!user) return;
+  // const handleMicToggle = () => {
+  //   if (!user) return;
 
-    const newMuteState = !isMicMuted;
-    setIsMicMuted(newMuteState);
+  //   const newMuteState = !isMicMuted;
+  //   setIsMicMuted(newMuteState);
 
-    if (newMuteState) {
-      toast({ title: "Microphone muted" });
-    } else {
-      toast({ title: "Microphone unmuted" });
-    }
-  };
+  //   if (newMuteState) {
+  //     toast({ title: "Microphone muted" });
+  //   } else {
+  //     toast({ title: "Microphone unmuted" });
+  //   }
+  // };
 
   // Add a LiveKit connection handler
-  const handleMicrophoneStatusChange = (muted: boolean) => {
-    if (isMicMuted !== muted) {
-      setIsMicMuted(muted);
-    }
-  };
+  // const handleMicrophoneStatusChange = (muted: boolean) => {
+  //   if (isMicMuted !== muted) {
+  //     setIsMicMuted(muted);
+  //   }
+  // };
 
-  // Add an effect to monitor microphone status changes
-  useEffect(() => {
-    // Empty effect, we just want to trigger toasts in the handleMicToggle function directly
-  }, [isMicMuted]);
+  // // Add an effect to monitor microphone status changes
+  // useEffect(() => {
+  //   // Empty effect, we just want to trigger toasts in the handleMicToggle function directly
+  // }, [isMicMuted]);
 
   if (!room) {
     return (
@@ -252,19 +251,12 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
             <MessageInput roomId={room._id} />
           </div>
         </div>
-
         {/* {showParticipants && (
           <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
             <ParticipantList participants={participants} />
           </div>
         )} */}
 
-        <SummaryRoomModal
-          isOpen={true}
-          onClose={() => false}
-          // isGenerating={isGeneratingSummary}
-          // summary={summary}
-        />
         {/* <div className="mb-6">
           <div className="flex justify-between items-start">
             <div>
@@ -351,7 +343,6 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
         {/* )} */}
         {/* </div>
         </div> */}
-
         {/* LiveKit Room */}
         {/* {showLiveKit && userId && (
           <div className="mb-6">
@@ -363,7 +354,6 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
             />
           </div>
         )} */}
-
         {/* Room controls */}
         {/* {myParticipant && (
           <div className="mb-6">
@@ -435,7 +425,6 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
             </Card>
           </div>
         )} */}
-
         {/* Participants list */}
         {/* <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
