@@ -77,6 +77,7 @@ export const create = mutation({
     scheduledFor: v.optional(v.number()),
     isPrivate: v.boolean(),
     isRecorded: v.optional(v.boolean()),
+    type: v.union(v.literal('audio'), v.literal('video')),
   },
   returns: v.object({
     roomId: v.id("rooms"),
@@ -95,6 +96,7 @@ export const create = mutation({
     const roomId = await ctx.db.insert("rooms", {
       name: args.name,
       description: args.description,
+      type: args.type,
       createdBy: args.userId,
       createdAt: now,
       status: isScheduled ? "scheduled" : "live",
@@ -929,4 +931,139 @@ export const triggerDeleteAllRooms = mutation({
     
     return { success: true, message: "Room cleanup process started." };
   },
-}); 
+});
+
+/**
+ * Check access code for a private room (Mutation)
+ */
+export const checkAccessCode = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    accessCode: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+
+    if (!room) {
+      console.error(`Room not found for validation: ${args.roomId}`);
+      // Optionally throw an error instead of returning false if room not found is critical
+      return false; // Room doesn't exist
+    }
+
+    // Check if the room is actually private and the code matches
+    if (room.isPrivate && room.accessCode === args.accessCode) {
+      // Optional: Could add logic here to formally "join" the user 
+      // if validation implies joining permission, e.g., add to roomParticipants
+      // or create a temporary access grant.
+      return true;
+    } 
+    
+    // Log failed attempt for debugging/security
+    console.log(`Access code validation failed for room ${args.roomId}. Provided code: ${args.accessCode}`);
+    return false;
+  },
+});
+
+/**
+ * List rooms by type (e.g., 'audio' or 'video')
+ */
+export const listByType = query({
+  args: {
+    type: v.union(v.literal('audio'), v.literal('video')),
+    limit: v.optional(v.number()),
+  },
+  // Ensure the return type includes all fields needed by the card
+  returns: v.array(
+    v.object({
+      _id: v.id("rooms"),
+      _creationTime: v.number(),
+      name: v.string(),
+      description: v.optional(v.string()),
+      type: v.union(v.literal('audio'), v.literal('video')),
+      createdBy: v.id("users"),
+      createdAt: v.number(),
+      status: v.string(),
+      scheduledFor: v.optional(v.number()),
+      startedAt: v.optional(v.number()),
+      endedAt: v.optional(v.number()),
+      isPrivate: v.boolean(), 
+      isRecorded: v.boolean(),
+      participantCount: v.optional(v.number()),
+      peakParticipantCount: v.optional(v.number()),
+      // Add accessCode potentially? Only if needed on the list view, usually not.
+    })
+  ),
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 20;
+    
+    return await ctx.db
+      .query("rooms")
+      .withIndex("by_type", (q) => q.eq("type", args.type))
+      // Exclude deleted rooms
+      .filter(q => q.or(
+        q.eq(q.field("isDeleted"), false),
+        q.eq(q.field("isDeleted"), undefined)
+      ))
+      .order("desc") // Order by creation time descending
+      .take(limit);
+  },
+});
+
+/**
+ * Find a private room by its access code.
+ * Returns the room ID if found and active, otherwise null.
+ */
+export const findRoomByAccessCode = query({
+  args: {
+    accessCode: v.string(),
+  },
+  // Return only the ID and type, or null
+  returns: v.union(v.object({ 
+      roomId: v.id("rooms"),
+      type: v.union(v.literal('audio'), v.literal('video'))
+    }), v.null()),
+  handler: async (ctx, args) => {
+    if (!args.accessCode) return null; // Don't query for empty code
+
+    const room = await ctx.db
+      .query("rooms")
+      .withIndex("by_accessCode", (q) => q.eq("accessCode", args.accessCode))
+      // Ensure it's private (though index implies it)
+      .filter(q => q.eq(q.field("isPrivate"), true))
+      // Ensure it's not deleted
+      .filter(q => q.or(
+        q.eq(q.field("isDeleted"), false),
+        q.eq(q.field("isDeleted"), undefined)
+      ))
+      // Optionally filter for only 'live' or 'scheduled' rooms?
+      // .filter(q => q.or(
+      //   q.eq(q.field("status"), "live"),
+      //   q.eq(q.field("status"), "scheduled")
+      // ))
+      .unique(); // Expect only one room per unique code
+
+    if (room) {
+      // Return only the ID and type needed for redirection
+      return { roomId: room._id, type: room.type }; 
+    } else {
+      console.log(`No active private room found for access code: ${args.accessCode}`);
+      return null;
+    }
+  },
+});
+
+/**
+ * [Internal] One-off mutation to add the 'type' field to an existing room.
+ * SHOULD BE REMOVED after use.
+ */
+// export const _backfillRoomType = internalMutation({
+//   args: { 
+//     roomId: v.id("rooms"), 
+//     roomType: v.union(v.literal('audio'), v.literal('video')) 
+//   },
+//   handler: async (ctx, args) => {
+//     await ctx.db.patch(args.roomId, { type: args.roomType });
+//     console.log(`Patched room ${args.roomId} with type: ${args.roomType}`);
+//   },
+// }); 

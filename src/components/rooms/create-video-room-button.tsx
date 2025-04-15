@@ -78,6 +78,7 @@ export function CreateVideoRoomButton() {
         name: finalRoomName,
         userId: userId,
         isPrivate: isPrivate,
+        type: 'video',
       });
 
       toast.success("Room created successfully!");

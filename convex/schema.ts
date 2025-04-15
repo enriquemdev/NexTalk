@@ -40,6 +40,7 @@ export default defineSchema({
     // Basic information
     name: v.string(),
     description: v.optional(v.string()),
+    type: v.union(v.literal('audio'), v.literal('video')), // Add type field
     
     // Creator and timestamps
     createdBy: v.id("users"),
@@ -67,7 +68,9 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_creator", ["createdBy"])
     .index("by_visibility", ["isPrivate"])
-    .index("by_deletion", ["isDeleted"]),
+    .index("by_deletion", ["isDeleted"])
+    .index("by_type", ["type"])
+    .index("by_accessCode", ["accessCode"]), // Add index for accessCode
   
   // Room participants and their roles
   roomParticipants: defineTable({
