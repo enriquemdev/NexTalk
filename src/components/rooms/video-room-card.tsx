@@ -87,7 +87,11 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
       <Card className="overflow-hidden transition-all hover:shadow-md">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
-            {isPrivate && <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" titleAccess='Private Room' />}
+            {isPrivate && (
+              <span title="Private Room">
+                <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </span>
+            )}
             <CardTitle className="text-lg line-clamp-1 flex items-center gap-2">
               <span className="truncate">{roomName}</span>
             </CardTitle>

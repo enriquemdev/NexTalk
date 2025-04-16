@@ -39,6 +39,7 @@ export const list = query({
       isRecorded: v.boolean(),
       participantCount: v.optional(v.number()),
       peakParticipantCount: v.optional(v.number()),
+      accessCode: v.optional(v.string()),
     })
   ),
   handler: async (ctx, args) => {
@@ -139,27 +140,6 @@ export const get = query({
     roomId: v.id("rooms"),
     includeDeleted: v.optional(v.boolean()) 
   },
-  returns: v.union(
-    v.object({
-      _id: v.id("rooms"),
-      _creationTime: v.number(),
-      name: v.string(),
-      description: v.optional(v.string()),
-      createdBy: v.id("users"),
-      createdAt: v.number(),
-      status: v.string(),
-      scheduledFor: v.optional(v.number()),
-      startedAt: v.optional(v.number()),
-      endedAt: v.optional(v.number()),
-      isPrivate: v.boolean(),
-      isRecorded: v.boolean(),
-      isDeleted: v.optional(v.boolean()),
-      deletedAt: v.optional(v.number()),
-      participantCount: v.optional(v.number()),
-      peakParticipantCount: v.optional(v.number()),
-    }),
-    v.null()
-  ),
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
     
@@ -169,7 +149,8 @@ export const get = query({
     // If room is deleted and includeDeleted is not true, return null
     if (room.isDeleted && !args.includeDeleted) return null;
     
-    return room;
+    // Let Convex infer the return type from the handler
+    return room; 
   },
 });
 
@@ -991,7 +972,7 @@ export const listByType = query({
       isRecorded: v.boolean(),
       participantCount: v.optional(v.number()),
       peakParticipantCount: v.optional(v.number()),
-      // Add accessCode potentially? Only if needed on the list view, usually not.
+      accessCode: v.optional(v.string()),
     })
   ),
   handler: async (ctx, args) => {

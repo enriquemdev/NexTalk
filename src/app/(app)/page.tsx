@@ -24,12 +24,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { VideoRoomCard } from "@/components/rooms/video-room-card";
 import { CreateVideoRoomButton } from "@/components/rooms/create-video-room-button";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
   const triggerDeleteAllRooms = useMutation(api.rooms.triggerDeleteAllRooms);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const activeVideoRooms = useQuery(api.videoRooms.listActiveVideoRooms);
+  const videoRooms = useQuery(api.rooms.listByType, { type: 'video', limit: 6 });
+
+  const isLoadingVideoRooms = videoRooms === undefined;
 
   const handleDeleteAllRooms = async () => {
     setIsDeleting(true);
@@ -61,35 +64,32 @@ export default function Home() {
 
         <section className="mt-12">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">Active Video Rooms</h2>
+            <h2 className="text-2xl font-semibold">Video Rooms</h2>
             <CreateVideoRoomButton />
           </div>
-          {activeVideoRooms === undefined && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-card rounded-lg shadow-sm p-4 animate-pulse h-36"
-                ></div>
-              ))}
+          {isLoadingVideoRooms ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[150px]">
+                <div className="col-span-full flex justify-center items-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
             </div>
-          )}
-          {activeVideoRooms && activeVideoRooms.length === 0 && (
+          ) : videoRooms && videoRooms.length === 0 ? (
             <p className="text-muted-foreground">
               No active video rooms right now. Start one!
             </p>
-          )}
-          {activeVideoRooms && activeVideoRooms.length > 0 && (
+          ) : videoRooms && videoRooms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeVideoRooms.map((room) => (
+              {videoRooms.map((room) => (
                 <VideoRoomCard
                   key={room._id}
+                  roomId={room._id}
                   roomName={room.name}
-                  isActive={true}
+                  isPrivate={room.isPrivate}
+                  isActive={room.status === 'live' || room.status === 'scheduled'}
                 />
               ))}
             </div>
-          )}
+          ) : null}
         </section>
 
         <LiveRoomsSection />

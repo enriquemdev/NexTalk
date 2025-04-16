@@ -238,15 +238,16 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
   return (
     <div className="container mx-auto px-4 py-8">
       <RoomHeader
-        title={room.name}
-        startTime="10:00"
-        endTime={"11:00"}
-        status={room.status}
+        roomId={room._id}
+        roomName={room.name}
+        status={room.status as 'scheduled' | 'live' | 'ended'}
+        participantCount={room.participantCount}
+        isPrivate={room.isPrivate}
       />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1">
           <div className="flex-1 overflow-y-auto p-4">
-            <MessageList hostId={room.createdBy} roomId={room._id} />
+            <MessageList roomId={room._id} />
           </div>
           <div className="border-t border-gray-200 px-4 pt-8 pb-4 bg-background mt-8">
             <MessageInput roomId={room._id} />
@@ -260,10 +261,9 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
         )} */}
 
         <SummaryRoomModal
+          roomId={room._id}
           isOpen={true}
-          onClose={() => false}
-          // isGenerating={isGeneratingSummary}
-          // summary={summary}
+          onOpenChange={() => {}}
         />
         {/* <div className="mb-6">
           <div className="flex justify-between items-start">

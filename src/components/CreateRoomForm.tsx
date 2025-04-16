@@ -91,6 +91,7 @@ export function CreateRoomForm() {
         description: data.description,
         userId: userId,
         isPrivate: isPrivate,
+        type: "audio",
       });
 
       toast.success("Room created successfully!");
