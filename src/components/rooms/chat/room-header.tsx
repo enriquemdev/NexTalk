@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Clock, Video, Mic, Users, MoreVertical } from "lucide-react";
+import { Clock, Video, Mic, MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,8 +8,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { SummaryRoomModal } from "./summary-room-modal";
+import { RoomParticipants } from "./room-participants";
+import { Id } from "convex/_generated/dataModel";
 
 interface MeetingHeaderProps {
+  roomId: Id<"rooms">;
   title: string;
   startTime: string;
   endTime: string;
@@ -17,6 +20,7 @@ interface MeetingHeaderProps {
 }
 
 export const RoomHeader = ({
+  roomId,
   title,
   startTime,
   endTime,
@@ -53,10 +57,7 @@ export const RoomHeader = ({
           <Button variant="outline" size="icon">
             <Video className="h-4 w-4" />
           </Button>
-          <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
-            <Users className="h-4 w-4 mr-2" />
-            Participants
-          </Button>
+          <RoomParticipants roomId={roomId} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
