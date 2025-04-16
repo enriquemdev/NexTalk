@@ -68,7 +68,7 @@ export function CreateRoomForm() {
 
       setOpen(false);
       form.reset();
-      router.push(`/room/${roomId}`);
+      router.push(`/rooms/${roomId}`);
     } catch (error: unknown) {
       console.error("Failed to create room:", error);
       toast.error("Failed to create room. Please try again.");
