@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from "lucide-react";
+import { Bell, ChevronsUpDown, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -20,19 +20,21 @@ import {
 } from "@/components/ui/sidebar";
 import { useUser } from "@clerk/nextjs";
 import { useClerk } from "@clerk/nextjs";
-
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Card, CardContent } from "@/components/ui/card";
+import { UserProfileContent } from "../../core/user-profile";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { signOut } = useClerk();
-  const { user, isLoaded } = useUser();
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user: convexUser, isLoading: isConvexLoading } = useCurrentUser();
 
-  if (!user) {
-    return;
+  if (!clerkUser) {
+    return null;
   }
 
-  if (!isLoaded) {
+  if (!isClerkLoaded || isConvexLoading || !convexUser) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -52,13 +54,15 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user?.imageUrl} alt={"user image"} />
+                <AvatarImage src={clerkUser?.imageUrl} alt={"user image"} />
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.fullName}</span>
+                <span className="truncate font-semibold">
+                  {clerkUser.fullName}
+                </span>
                 <span className="truncate text-xs">
-                  {user.emailAddresses[0].emailAddress}
+                  {clerkUser.emailAddresses[0].emailAddress}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
@@ -71,35 +75,24 @@ export function NavUser() {
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user?.imageUrl} alt={"user image"} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {user.fullName}
-                  </span>
-                  <span className="truncate text-xs">
-                    {user.emailAddresses[0].emailAddress}
-                  </span>
-                </div>
-              </div>
+              <UserProfileContent
+                variant="inline"
+                selectedUser={convexUser}
+                avatarSize="sm"
+                showFollowButton={false}
+                className="p-4"
+              />
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
+                <Bell className="mr-2" />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>
-              <LogOut />
+              <LogOut className="mr-2" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
