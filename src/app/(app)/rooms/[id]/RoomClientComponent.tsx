@@ -241,6 +241,7 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
         startTime="10:00"
         endTime={"11:00"}
         status={room.status}
+        roomId={room._id}
       />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1">
