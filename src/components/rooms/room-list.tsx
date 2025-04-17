@@ -79,7 +79,9 @@ export function RoomList({ type, userId, limit = 10 }: RoomListProps) {
       {rooms.map((room) => (
         <div key={room._id.toString()} className="w-full max-w-lg">
           <VideoRoomCard 
-            roomName={room.name} 
+            roomId={room._id}
+            roomName={room.name}
+            isPrivate={room.isPrivate}
             isActive={room.status === 'live'}
           />
         </div>

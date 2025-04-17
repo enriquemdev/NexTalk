@@ -12,6 +12,7 @@ export const send = mutation({
     content: v.string(),
     type: v.optional(v.string()),
   },
+  returns: v.id("messages"),
   handler: async (ctx, args) => {
     // Check if the user is in the room
     const participant = await ctx.db
@@ -36,6 +37,41 @@ export const send = mutation({
     });
 
     return messageId;
+  },
+});
+
+/**
+ * List messages for a room, joined with basic user info.
+ */
+export const listMessagesWithUsers = query({
+  args: { 
+    roomId: v.id("rooms"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 100;
+
+    // Fetch messages ordered by creation time
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))
+      .order("asc")
+      .take(limit);
+
+    // Fetch user details for each message
+    const messagesWithUsers = await Promise.all(
+      messages.map(async (message) => {
+        const user = await ctx.db.get(message.userId);
+        return {
+          ...message,
+          user: user
+             ? { _id: user._id, name: user.name, image: user.image }
+             : null, 
+        };
+      })
+    );
+
+    return messagesWithUsers;
   },
 });
 
