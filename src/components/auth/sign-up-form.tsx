@@ -9,44 +9,43 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useSignIn } from "@clerk/nextjs";
+import { useSignUp } from "@clerk/nextjs";
 import { useState } from "react";
 import Link from "next/link";
-import { DebugConvex } from "@/components/debug-convex";
 
-export function LoginForm({
+export function SignUpForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const { signIn, isLoaded } = useSignIn();
+  const { signUp, isLoaded } = useSignUp();
   const [isLoading, setIsLoading] = useState(false);
 
-  const signInWithGoogle = async () => {
+  const signUpWithGoogle = async () => {
     if (!isLoaded) return;
     try {
       setIsLoading(true);
-      await signIn.authenticateWithRedirect({
+      await signUp.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: window.location.origin + "/sso-callback",
         redirectUrlComplete: "/"
       });
     } catch (error) {
-      console.error("Error signing in with Google:", error);
+      console.error("Error signing up with Google:", error);
       setIsLoading(false);
     }
   };
 
-  const signInWithFacebook = async () => {
+  const signUpWithFacebook = async () => {
     if (!isLoaded) return;
     try {
       setIsLoading(true);
-      await signIn.authenticateWithRedirect({
+      await signUp.authenticateWithRedirect({
         strategy: "oauth_facebook",
         redirectUrl: window.location.origin + "/sso-callback",
         redirectUrlComplete: "/"
       });
     } catch (error) {
-      console.error("Error signing in with Facebook:", error);
+      console.error("Error signing up with Facebook:", error);
       setIsLoading(false);
     }
   };
@@ -55,9 +54,9 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome to NexTalk</CardTitle>
+          <CardTitle className="text-xl">Create your NexTalk account</CardTitle>
           <CardDescription>
-            Login with your Google or Facebook account
+            Sign up with your Google or Facebook account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -67,7 +66,7 @@ export function LoginForm({
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={signInWithGoogle}
+                  onClick={signUpWithGoogle}
                   disabled={isLoading || !isLoaded}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 size-5">
@@ -76,12 +75,12 @@ export function LoginForm({
                       fill="currentColor"
                     />
                   </svg>
-                  {isLoading ? "Loading..." : "Login with Google"}
+                  {isLoading ? "Loading..." : "Sign up with Google"}
                 </Button>
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={signInWithFacebook}
+                  onClick={signUpWithFacebook}
                   disabled={isLoading || !isLoaded}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 size-5">
@@ -90,24 +89,23 @@ export function LoginForm({
                       fill="currentColor"
                     />
                   </svg>
-                  {isLoading ? "Loading..." : "Login with Facebook"}
+                  {isLoading ? "Loading..." : "Sign up with Facebook"}
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <Link href="/sign-up" className="text-primary hover:underline underline-offset-4">
-                  Sign up
+                Already have an account?{" "}
+                <Link href="/sign-in" className="text-primary hover:underline underline-offset-4">
+                  Sign in
                 </Link>
               </div>
             </div>
           </form>
         </CardContent>
       </Card>
-      <DebugConvex />
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
         By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
         and <a href="#">Privacy Policy</a>.
       </div>
     </div>
   );
-}
+} 

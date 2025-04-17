@@ -4,11 +4,13 @@
 // import { Button } from "@/components/ui/button";
 // import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 // import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Id } from "convex/_generated/dataModel";
 // import { LiveKitAudioRoom } from "@/components/rooms/livekit-room";
-// import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 // import { Badge } from "@/components/ui/badge";
 // import { Card, CardContent } from "@/components/ui/card";
 // import { formatDistanceToNow } from "date-fns";
@@ -17,6 +19,7 @@ import { RoomHeader } from "@/components/rooms/chat/room-header";
 import { MessageList } from "@/components/rooms/chat/message-list";
 import { MessageInput } from "@/components/rooms/chat/message-input";
 import { SummaryRoomModal } from "@/components/rooms/chat/summary-room-modal";
+import { Button } from "@/components/ui/button";
 
 interface RoomClientComponentProps {
   roomId: Id<"rooms">;
@@ -25,205 +28,49 @@ interface RoomClientComponentProps {
 const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
   roomId,
 }) => {
-  // const { userId, user } = useCurrentUser();
-  // const { toast } = useToast();
+  const router = useRouter();
+  const { user, isLoading } = useCurrentUser();
 
   // Fetch room data
   const room = useQuery(api.rooms.get, { roomId });
 
-  // // Fetch room participants
-  // const participants = useQuery(api.rooms.getParticipants, { roomId }) || [];
+  // Redirect to login page if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/sign-in");
+    }
+  }, [user, isLoading, router]);
 
-  // // Get room creator data
-  // const creatorId = room?.createdBy;
-  // const roomCreator = useQuery(
-  //   api.users.get,
-  //   creatorId ? { userId: creatorId } : "skip"
-  // );
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-pulse text-2xl">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
-  // // Get all participant user data in one batch
-  // const participantUserIds = useMemo(() => {
-  //   return participants.filter((p) => !p.leftAt).map((p) => p.userId);
-  // }, [participants]);
-
-  // // Fetch all participant user data
-  // const participantUsers =
-  //   useQuery(
-  //     api.users.getMultiple,
-  //     participantUserIds.length > 0 ? { userIds: participantUserIds } : "skip"
-  //   ) || [];
-
-  // // Create a map of user data for easy lookup
-  // const userDataMap = useMemo(() => {
-  //   const map = new Map<Id<"users">, Doc<"users">>();
-  //   participantUsers.forEach((user) => {
-  //     if (user) map.set(user._id, user);
-  //   });
-  //   return map;
-  // }, [participantUsers]);
-
-  // // Mutations
-  // const joinRoomMutation = useMutation(api.rooms.joinRoom);
-  // const leaveRoomMutation = useMutation(api.rooms.leaveRoom);
-  // const deleteRoomMutation = useMutation(api.rooms.deleteRoom);
-
-  // State
-  // const [isJoining, setIsJoining] = useState(false);
-  // const [isLeaving, setIsLeaving] = useState(false);
-  // const [isDeleting, setIsDeleting] = useState(false);
-  // const [confirmDelete, setConfirmDelete] = useState(false);
-  // const [confirmLeave, setConfirmLeave] = useState(false);
-  // const [myParticipantId, setMyParticipantId] =
-  //   useState<Id<"roomParticipants"> | null>(null);
-  // const [showLiveKit, setShowLiveKit] = useState(false);
-  // const [isMicMuted, setIsMicMuted] = useState(false);
-
-  // Find my participant record
-  // const myParticipant = participants.find(
-  //   (p) => p.userId === userId && !p.leftAt
-  // );
-
-  // Join the room
-  // const joinRoom = async () => {
-  //   if (!userId) {
-  //     toast({
-  //       title: "Authentication Required",
-  //       description: "You must be logged in to join a room",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
-
-  //   setIsJoining(true);
-
-  //   try {
-  //     // Join room in database
-  //     const participantId = await joinRoomMutation({ roomId, userId });
-  //     setMyParticipantId(participantId);
-  //     setShowLiveKit(true);
-
-  //     toast({
-  //       title: "Joined Room",
-  //       description: "You've successfully joined the audio room",
-  //     });
-  //   } catch (error) {
-  //     console.error("Failed to join room:", error);
-  //     toast({
-  //       title: "Failed to Join",
-  //       description:
-  //         error instanceof Error ? error.message : "An error occurred",
-  //       variant: "destructive",
-  //     });
-  //   } finally {
-  //     setIsJoining(false);
-  //   }
-  // };
-
-  // Leave the room
-  // const leaveRoom = async () => {
-  //   if (!myParticipantId) return;
-
-  //   // Reset confirm state if it was open
-  //   setConfirmLeave(false);
-  //   setIsLeaving(true);
-
-  //   try {
-  //     await leaveRoomMutation({ participantId: myParticipantId });
-
-  //     // Hide LiveKit room
-  //     setShowLiveKit(false);
-
-  //     toast({
-  //       title: "Left Room",
-  //       description: "You've left the audio room",
-  //     });
-
-  //     setMyParticipantId(null);
-  //   } catch (error) {
-  //     console.error("Failed to leave room:", error);
-  //     toast({
-  //       title: "Error",
-  //       description: "Failed to leave room properly",
-  //       variant: "destructive",
-  //     });
-  //   } finally {
-  //     setIsLeaving(false);
-  //   }
-  // };
-
-  // Delete the room
-  // const deleteRoom = async () => {
-  //   if (!userId || !room) return;
-
-  //   setIsDeleting(true);
-
-  //   try {
-  //     // First, leave the room if we're in it
-  //     if (myParticipantId) {
-  //       await leaveRoomMutation({ participantId: myParticipantId });
-  //       setShowLiveKit(false);
-  //       setMyParticipantId(null);
-  //     }
-
-  //     // Then delete the room
-  //     await deleteRoomMutation({ roomId, userId });
-
-  //     toast({
-  //       title: "Room Deleted",
-  //       description: "The room has been deleted successfully",
-  //     });
-
-  //     // Navigate back to home page
-  //     window.location.href = "/";
-  //   } catch (error) {
-  //     console.error("Failed to delete room:", error);
-  //     toast({
-  //       title: "Error",
-  //       description:
-  //         error instanceof Error ? error.message : "Failed to delete room",
-  //       variant: "destructive",
-  //     });
-  //   } finally {
-  //     setIsDeleting(false);
-  //     setConfirmDelete(false);
-  //   }
-  // };
-
-  // Clean up when leaving the page
-  // useEffect(() => {
-  //   return () => {
-  //     // If user navigates away, leave the room
-  //     if (myParticipantId) {
-  //       leaveRoom();
-  //     }
-  //   };
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [myParticipantId]);
-
-  // const handleMicToggle = () => {
-  //   if (!user) return;
-
-  //   const newMuteState = !isMicMuted;
-  //   setIsMicMuted(newMuteState);
-
-  //   if (newMuteState) {
-  //     toast({ title: "Microphone muted" });
-  //   } else {
-  //     toast({ title: "Microphone unmuted" });
-  //   }
-  // };
-
-  // Add a LiveKit connection handler
-  // const handleMicrophoneStatusChange = (muted: boolean) => {
-  //   if (isMicMuted !== muted) {
-  //     setIsMicMuted(muted);
-  //   }
-  // };
-
-  // // Add an effect to monitor microphone status changes
-  // useEffect(() => {
-  //   // Empty effect, we just want to trigger toasts in the handleMicToggle function directly
-  // }, [isMicMuted]);
+  // Show login message if not authenticated
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col items-center justify-center gap-4 min-h-[50vh]">
+          <h2 className="text-2xl font-bold">Authentication Required</h2>
+          <p className="text-muted-foreground text-center max-w-md">
+            You need to be logged in to access this room.
+          </p>
+          <Button 
+            onClick={() => router.push("/sign-in")}
+            className="mt-4"
+          >
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!room) {
     return (
@@ -249,7 +96,7 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
           <div className="flex-1 overflow-y-auto p-4">
             <MessageList roomId={room._id} />
           </div>
-          <div className="border-t border-gray-200 px-4 pt-8 pb-4 bg-background mt-8">
+          <div className="border-t p-4 bg-background">
             <MessageInput roomId={room._id} />
           </div>
         </div>

@@ -75,19 +75,19 @@ export function CreateRoomForm() {
   const [selectedUsers, setSelectedUsers] = useState<SearchUser[]>([]);
   const [isSendingInvites, setIsSendingInvites] = useState(false);
 
-  // Get all users when no search query is provided
-  const allUsers = useQuery(api.users.listUsers, { limit: 20 });
+  // Get all users when no search query is provided, increase limit to show more options
+  const allUsers = useQuery(api.users.listUsers, { limit: 30 });
   
   // Use search results when a search query is provided
   const searchResults = useQuery(
     api.users.searchUsers,
-    debouncedSearchQuery ? { searchQuery: debouncedSearchQuery, limit: 10 } : "skip"
+    // Allow empty query to show all users
+    { searchQuery: debouncedSearchQuery, limit: 20 }
   );
   
   // Determine which user list to display
   const displayUsers = debouncedSearchQuery ? searchResults : allUsers;
-  const isSearching = (debouncedSearchQuery && searchResults === undefined) || 
-                     (!debouncedSearchQuery && allUsers === undefined);
+  const isSearching = displayUsers === undefined;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -348,24 +348,30 @@ export function CreateRoomForm() {
                     )}
                     {!isSearching && displayUsers && displayUsers.length > 0 && (
                         <ul className="space-y-2">
-                            {displayUsers.map((user) => (
-                                <li key={user._id} className="flex items-center space-x-3 p-2 rounded hover:bg-muted">
-                                    <Checkbox 
-                                        id={`user-${user._id}`}
-                                        checked={selectedUsers.some(u => u._id === user._id)}
-                                        onCheckedChange={(checked) => handleUserSelect(user, checked)}
-                                    />
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarFallback>{(user.name?.[0] || 'U').toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                    <label htmlFor={`user-${user._id}`} className="flex-1 cursor-pointer">
-                                        <p className="text-sm font-medium leading-none">{user.name || 'Unnamed User'}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {user.email ? user.email : 'No email available'}
-                                        </p>
-                                    </label>
-                                </li>
-                            ))}
+                            {displayUsers.map((user) => {
+                                const displayName = user.name || 'Unnamed User';
+                                const displayEmail = user.email || 'No email available';
+                                const initials = displayName.charAt(0).toUpperCase();
+                                
+                                return (
+                                    <li key={user._id} className="flex items-center space-x-3 p-2 rounded hover:bg-muted">
+                                        <Checkbox 
+                                            id={`user-${user._id}`}
+                                            checked={selectedUsers.some(u => u._id === user._id)}
+                                            onCheckedChange={(checked) => handleUserSelect(user, checked)}
+                                        />
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarFallback>{initials}</AvatarFallback>
+                                        </Avatar>
+                                        <label htmlFor={`user-${user._id}`} className="flex-1 cursor-pointer">
+                                            <p className="text-sm font-medium leading-none">{displayName}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {displayEmail}
+                                            </p>
+                                        </label>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </ScrollArea>

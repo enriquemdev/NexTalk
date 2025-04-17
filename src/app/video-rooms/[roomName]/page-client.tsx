@@ -22,6 +22,8 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect } from 'react';
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Button } from "@/components/ui/button";
 
 // Ensure CONN_DETAILS_ENDPOINT uses the process.env variable or defaults
 const CONN_DETAILS_ENDPOINT =
@@ -33,23 +35,39 @@ export function PageClientImpl(props: {
   hq: boolean;
   codec: VideoCodec;
 }) {
+  const router = useRouter();
+  const { user, isLoading } = useCurrentUser();
   const [preJoinChoices, setPreJoinChoices] = React.useState<LocalUserChoices | undefined>(
     undefined,
   );
   const preJoinDefaults = React.useMemo(() => {
     return {
-      username: '',
+      username: user?.name || '',
       videoEnabled: true,
       audioEnabled: true,
     };
-  }, []);
+  }, [user]);
   const [connectionDetails, setConnectionDetails] = React.useState<ConnectionDetails | undefined>(
     undefined,
   );
   const ensureVideoRoom = useMutation(api.videoRooms.ensureVideoRoomExists);
 
+  // Redirect to login page if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/sign-in");
+    }
+  }, [user, isLoading, router]);
+
   // Use the exact handlePreJoinSubmit from the reference project, but add ensureVideoRoom call
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
+    // Check if user is authenticated
+    if (!user) {
+      alert("You must be logged in to join a video room");
+      router.push("/sign-in");
+      return;
+    }
+
     setPreJoinChoices(values);
     
     // ** Ensure video room exists in Convex before proceeding **
@@ -82,7 +100,7 @@ export function PageClientImpl(props: {
       console.error('Error fetching connection details:', error);
       alert(`Error fetching connection details: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [props.roomName, props.region, ensureVideoRoom]);
+  }, [props.roomName, props.region, ensureVideoRoom, user, router]);
 
   // Use the exact handlePreJoinError from the reference project
   const handlePreJoinError = React.useCallback((e: unknown) => {
@@ -94,6 +112,33 @@ export function PageClientImpl(props: {
         alert(`An unknown error occurred during pre-join: ${JSON.stringify(e)}`);
     }
   }, []);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse text-2xl">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login message if not authenticated
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 min-h-screen p-4">
+        <h2 className="text-2xl font-bold">Authentication Required</h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          You need to be logged in to join video rooms.
+        </p>
+        <Button 
+          onClick={() => router.push("/sign-in")}
+          className="mt-4"
+        >
+          Sign In
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <main data-lk-theme="default" style={{ height: '100%' }}>

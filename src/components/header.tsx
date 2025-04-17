@@ -3,6 +3,7 @@ import React from "react";
 import { JoinPrivateRoomButton } from "./rooms/join-private-room-button";
 // import { CreateRoomForm } from "./CreateRoomForm"; // Assuming general room creation is here - commented out
 import { CreateVideoRoomButton } from "./rooms/create-video-room-button";
+import { AuthButton } from "./auth/auth-button";
 
 export function Header() {
   return (
@@ -12,7 +13,7 @@ export function Header() {
           <span>
             <SmartphoneNfcIcon className="size-6" />
           </span>
-          <span>NextTalk</span>
+          <span>NexTalk</span>
         </h1>
         
         {/* Right side actions */}
@@ -20,7 +21,7 @@ export function Header() {
            <JoinPrivateRoomButton />
            <CreateVideoRoomButton /> 
            {/* <CreateRoomForm /> */}
-           {/* Add Auth Button Here */}
+           <AuthButton />
         </div>
       </div>
     </header>

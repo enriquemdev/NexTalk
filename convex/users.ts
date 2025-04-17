@@ -109,6 +109,7 @@ export const updateStatus = mutation({
 
 /**
  * Search for users by name or email using the search index.
+ * Falls back to listing all users if the search query is empty.
  */
 export const searchUsers = query({
   args: {
@@ -116,24 +117,55 @@ export const searchUsers = query({
     limit: v.optional(v.number()), // Optional limit for results
   },
   handler: async (ctx, args) => {
-    // If the search query is empty, return no results
-    if (args.searchQuery === "") {
-      return [];
+    const limit = args.limit ?? 10; // Default limit to 10 if not provided
+
+    // If the search query is empty or very short, fall back to listing users
+    if (!args.searchQuery || args.searchQuery.length < 2) {
+      // Use the listUsers logic for empty searches
+      const users = await ctx.db
+        .query("users")
+        .withIndex("by_createdAt")
+        .order("desc")
+        .take(limit);
+
+      // Return users with consistent structure
+      return users.map((user) => ({
+        _id: user._id,
+        name: user.name || "Unnamed User", // Provide default for missing names
+        email: user.email || "", // Ensure email is never undefined
+      }));
     }
 
     // Use the search index to find users matching the query in name or email
-    const users = await ctx.db
+    let users = await ctx.db
       .query("users")
       .withSearchIndex("search_name_email", (q) =>
         q.search("name", args.searchQuery)
       )
-      .take(args.limit ?? 10); // Default limit to 10 if not provided
+      .take(limit);
 
-    // Return only necessary fields (id, name, email)
+    // If no results from search index, try a more permissive search
+    if (users.length === 0) {
+      // Get all users and filter client-side for very small result sets
+      // This is a fallback for when the search index doesn't match
+      users = await ctx.db
+        .query("users")
+        .withIndex("by_createdAt")
+        .order("desc")
+        .take(25); // Get a reasonable number of recent users
+      
+      const searchTermLower = args.searchQuery.toLowerCase();
+      users = users.filter(user => 
+        (user.name && user.name.toLowerCase().includes(searchTermLower)) ||
+        (user.email && user.email.toLowerCase().includes(searchTermLower))
+      ).slice(0, limit); // Apply the limit after filtering
+    }
+
+    // Ensure consistent structure and handle missing fields
     return users.map((user) => ({
       _id: user._id,
-      name: user.name,
-      email: user.email,
+      name: user.name || "Unnamed User", // Provide default for missing names
+      email: user.email || "", // Ensure email is never undefined
     }));
   },
 });
