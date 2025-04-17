@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { PlusIcon } from "lucide-react";
 
 const formSchema = z.object({
   name: z
@@ -77,8 +78,11 @@ export function CreateRoomForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className="rounded-md">
-          Create Room
+        <Button
+          variant="outline"
+          className="rounded-md text-xs font-medium p-0 px-2"
+        >
+          <PlusIcon className="size-3" />
         </Button>
       </DialogTrigger>
       <DialogContent>

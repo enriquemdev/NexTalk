@@ -1,7 +1,7 @@
 import { AppSidebar } from "@/components/core/app-sidebar";
+import SearchBar from "@/components/core/search-bar";
 import { ThemeToggle } from "@/components/core/theme-toggle";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { SmartphoneNfcIcon } from "lucide-react";
 import React from "react";
 
 const HomeLayout = ({
@@ -18,6 +18,7 @@ const HomeLayout = ({
             <div className="py-4 px-4 flex items-center justify-start gap-4">
               <SidebarTrigger />
               <div className="flex items-center justify-end w-full">
+                <SearchBar />
                 <ThemeToggle />
               </div>
             </div>

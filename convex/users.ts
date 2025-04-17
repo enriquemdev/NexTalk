@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
 
 /**
  * Create or update a user when they log in
@@ -14,13 +13,13 @@ export const createOrUpdate = mutation({
   },
   handler: async (ctx, args) => {
     const identity = args.tokenIdentifier;
-    
+
     // Check if user exists
     const existingUser = await ctx.db
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity))
       .first();
-    
+
     if (existingUser) {
       // Update existing user
       await ctx.db.patch(existingUser._id, {
@@ -55,9 +54,11 @@ export const getByToken = query({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", args.tokenIdentifier))
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", args.tokenIdentifier)
+      )
       .first();
-    
+
     return user;
   },
 });
@@ -109,26 +110,26 @@ export const updateStatus = mutation({
  * Search for users by name or email
  */
 export const search = query({
-  args: {
-    query: v.string(),
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const query = args.query.toLowerCase();
-    const limit = args.limit ?? 10;
-    
+  // args: {
+  //   query: v.string(),
+  //   limit: v.optional(v.number()),
+  // },
+  handler: async (ctx) => {
+    // const query = args.query.toLowerCase();
+    // const limit = args.limit ?? 10;
+
     // Fetch all users - in a real app you'd want pagination
     // and more sophisticated searching
     const users = await ctx.db.query("users").collect();
-    
+
     // Filter users whose name or email contains the query
-    return users
-      .filter(
-        (user) =>
-          (user.name?.toLowerCase().includes(query) ?? false) ||
-          (user.email?.toLowerCase().includes(query) ?? false)
-      )
-      .slice(0, limit);
+    return users;
+    // .filter(
+    //   (user) =>
+    //     (user.name?.toLowerCase().includes(query) ?? false) ||
+    //     (user.email?.toLowerCase().includes(query) ?? false)
+    // )
+    // .slice(0, limit);
   },
 });
 
@@ -145,12 +146,10 @@ export const followUser = mutation({
     const existing = await ctx.db
       .query("follows")
       .withIndex("by_both", (q) =>
-        q
-          .eq("followerId", args.followerId)
-          .eq("followingId", args.followingId)
+        q.eq("followerId", args.followerId).eq("followingId", args.followingId)
       )
       .first();
-    
+
     if (!existing) {
       // Create new follow relationship
       const followId = await ctx.db.insert("follows", {
@@ -158,7 +157,7 @@ export const followUser = mutation({
         followingId: args.followingId,
         createdAt: Date.now(),
       });
-      
+
       // Create notification for the followed user
       await ctx.db.insert("notifications", {
         userId: args.followingId,
@@ -168,10 +167,10 @@ export const followUser = mutation({
         isRead: false,
         createdAt: Date.now(),
       });
-      
+
       return followId;
     }
-    
+
     return null;
   },
 });
@@ -188,17 +187,15 @@ export const unfollowUser = mutation({
     const follow = await ctx.db
       .query("follows")
       .withIndex("by_both", (q) =>
-        q
-          .eq("followerId", args.followerId)
-          .eq("followingId", args.followingId)
+        q.eq("followerId", args.followerId).eq("followingId", args.followingId)
       )
       .first();
-    
+
     if (follow) {
       await ctx.db.delete(follow._id);
       return true;
     }
-    
+
     return false;
   },
 });
@@ -215,13 +212,13 @@ export const getFollowers = query({
       .query("follows")
       .withIndex("by_following", (q) => q.eq("followingId", args.userId))
       .collect();
-    
+
     // Get detailed user information for each follower
     const followerIds = follows.map((follow) => follow.followerId);
     const followers = await Promise.all(
       followerIds.map((id) => ctx.db.get(id))
     );
-    
+
     return followers.filter(Boolean); // Filter out null values
   },
 });
@@ -238,13 +235,13 @@ export const getFollowing = query({
       .query("follows")
       .withIndex("by_follower", (q) => q.eq("followerId", args.userId))
       .collect();
-    
+
     // Get detailed user information for each followed user
     const followingIds = follows.map((follow) => follow.followingId);
     const following = await Promise.all(
       followingIds.map((id) => ctx.db.get(id))
     );
-    
+
     return following.filter(Boolean); // Filter out null values
   },
 });
@@ -253,8 +250,8 @@ export const getFollowing = query({
  * Get multiple users by their IDs
  */
 export const getMultiple = query({
-  args: { 
-    userIds: v.array(v.id("users")) 
+  args: {
+    userIds: v.array(v.id("users")),
   },
   returns: v.array(
     v.union(
@@ -279,7 +276,7 @@ export const getMultiple = query({
         return await ctx.db.get(userId);
       })
     );
-    
+
     return users;
   },
-}); 
+});
