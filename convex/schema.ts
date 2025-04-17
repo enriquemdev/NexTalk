@@ -23,7 +23,12 @@ export default defineSchema({
     .index("by_token", ["tokenIdentifier"])
     .index("by_email", ["email"])
     .index("by_createdAt", ["createdAt"])
-    .index("by_online", ["isOnline"]),
+    .index("by_online", ["isOnline"])
+    // Corrected search index for user name and email
+    .searchIndex("search_name_email", {
+      searchField: "name", // Primary search field
+      filterFields: ["email"], // Additional fields to search within
+    }),
     
   // User followings (social graph)
   follows: defineTable({
@@ -174,4 +179,43 @@ export default defineSchema({
   })
   .index("by_name", ["name"])
   .index("by_lastActivityAt", ["lastActivityAt"]),
+
+  /**
+   * Stores room invitations with their status and expiry information.
+   * - Tracks who sent the invitation and when
+   * - Handles single-use tokens with expiry
+   * - Records when invitations are used
+   */
+  invitations: defineTable({
+    // The room being invited to
+    roomId: v.id("rooms"),
+    // Email address of the invitee
+    email: v.string(),
+    // Secure random token for the invitation link
+    token: v.string(),
+    // Current status of the invitation
+    status: v.union(
+      v.literal("pending"),   // Not yet used
+      v.literal("used"),      // Successfully used to join
+      v.literal("expired")    // Expired without being used
+    ),
+    // User who created the invitation
+    invitedBy: v.id("users"),
+    // Timestamps
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+  })
+    // Find invitation by its token (for validation)
+    .index("by_token", ["token"])
+    // Find active invitations for a room+email combination (prevent duplicates)
+    .index("by_email_and_room", ["email", "roomId"])
+    // Find all invitations for a room (for listing/cleanup)
+    .index("by_room", ["roomId"])
+    // Find all invitations by a user (for listing/management)
+    .index("by_inviter", ["invitedBy"])
+    // Find expired invitations (for cleanup)
+    .index("by_expiry", ["expiresAt"])
+    // Find invitations by status (for filtering/cleanup)
+    .index("by_status", ["status"]),
 }); 

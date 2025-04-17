@@ -4,6 +4,7 @@ import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Share2, LogOut, Lock } from 'lucide-react';
+import { InviteButton } from '@/components/rooms/invite-button';
 import { Id } from '../../../../convex/_generated/dataModel'; // Adjusted path
 
 interface RoomHeaderProps {
@@ -64,6 +65,7 @@ export function RoomHeader({
           <Users className="w-4 h-4" />
           <span>{participantCount}</span>
         </div>
+        <InviteButton roomId={roomId} />
         {onShare && (
           <Button variant="ghost" size="icon" onClick={() => onShare(roomId)} title="Share Room">
             <Share2 className="w-4 h-4" />

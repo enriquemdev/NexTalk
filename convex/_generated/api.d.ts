@@ -14,6 +14,8 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as captions from "../captions.js";
+import type * as crons from "../crons.js";
+import type * as invitations from "../invitations.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
 import type * as reactions from "../reactions.js";
@@ -32,6 +34,8 @@ import type * as videoRooms from "../videoRooms.js";
  */
 declare const fullApi: ApiFromModules<{
   captions: typeof captions;
+  crons: typeof crons;
+  invitations: typeof invitations;
   messages: typeof messages;
   notifications: typeof notifications;
   reactions: typeof reactions;

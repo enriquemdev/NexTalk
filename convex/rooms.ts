@@ -1049,3 +1049,18 @@ export const findRoomByAccessCode = query({
 //     console.log(`Patched room ${args.roomId} with type: ${args.roomType}`);
 //   },
 // }); 
+
+/**
+ * Count the total number of rooms in the database
+ */
+export const count = query({
+  args: {},
+  handler: async (ctx) => {
+    const rooms = await ctx.db
+      .query("rooms")
+      .filter((q) => q.eq(q.field("isDeleted"), false) || q.eq(q.field("isDeleted"), undefined))
+      .collect();
+    
+    return rooms.length;
+  },
+});

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { Doc } from "./_generated/dataModel";
 
 /**
  * Create or update a user when they log in
@@ -107,29 +108,33 @@ export const updateStatus = mutation({
 });
 
 /**
- * Search for users by name or email
+ * Search for users by name or email using the search index.
  */
-export const search = query({
-  // args: {
-  //   query: v.string(),
-  //   limit: v.optional(v.number()),
-  // },
-  handler: async (ctx) => {
-    // const query = args.query.toLowerCase();
-    // const limit = args.limit ?? 10;
+export const searchUsers = query({
+  args: {
+    searchQuery: v.string(),
+    limit: v.optional(v.number()), // Optional limit for results
+  },
+  handler: async (ctx, args) => {
+    // If the search query is empty, return no results
+    if (args.searchQuery === "") {
+      return [];
+    }
 
-    // Fetch all users - in a real app you'd want pagination
-    // and more sophisticated searching
-    const users = await ctx.db.query("users").collect();
+    // Use the search index to find users matching the query in name or email
+    const users = await ctx.db
+      .query("users")
+      .withSearchIndex("search_name_email", (q) =>
+        q.search("name", args.searchQuery)
+      )
+      .take(args.limit ?? 10); // Default limit to 10 if not provided
 
-    // Filter users whose name or email contains the query
-    return users;
-    // .filter(
-    //   (user) =>
-    //     (user.name?.toLowerCase().includes(query) ?? false) ||
-    //     (user.email?.toLowerCase().includes(query) ?? false)
-    // )
-    // .slice(0, limit);
+    // Return only necessary fields (id, name, email)
+    return users.map((user) => ({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    }));
   },
 });
 
@@ -249,34 +254,100 @@ export const getFollowing = query({
 /**
  * Get multiple users by their IDs
  */
-export const getMultiple = query({
+export const getUsersById = query({
   args: {
     userIds: v.array(v.id("users")),
   },
-  returns: v.array(
-    v.union(
-      v.object({
-        _id: v.id("users"),
-        _creationTime: v.number(),
-        name: v.optional(v.string()),
-        email: v.optional(v.string()),
-        image: v.optional(v.string()),
-        bio: v.optional(v.string()),
-        lastSeen: v.optional(v.number()),
-        isOnline: v.optional(v.boolean()),
-        createdAt: v.number(),
-        tokenIdentifier: v.string(),
-      }),
-      v.null()
-    )
-  ),
   handler: async (ctx, args) => {
     const users = await Promise.all(
-      args.userIds.map(async (userId) => {
-        return await ctx.db.get(userId);
-      })
+      args.userIds.map((id) => ctx.db.get(id))
     );
+    // Filter out null results (if an ID didn't match)
+    return users.filter((user): user is Doc<"users"> => user !== null);
+  },
+});
 
-    return users;
+/**
+ * List all users up to a limit
+ */
+export const listUsers = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 20; // Default to 20 users
+
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_createdAt") // Use the createdAt index
+      .order("desc") // Sort by createdAt in descending order
+      .take(limit);
+
+    // Return fields needed for the admin UI
+    return users.map((user) => ({
+      _id: user._id,
+      name: user.name || "Unnamed User", // Provide default for missing names
+      email: user.email || "", // Ensure email is never undefined
+      createdAt: user.createdAt,
+      isOnline: user.isOnline || false,
+      lastSeen: user.lastSeen,
+      image: user.image
+    }));
+  },
+});
+
+/**
+ * Internal mutation to set a user's status to offline
+ */
+export const setUserOffline = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (user && user.isOnline) {
+      await ctx.db.patch(args.userId, { isOnline: false, lastSeen: Date.now() });
+      console.log(`User ${args.userId} marked as offline.`);
+    } else {
+      console.log(`User ${args.userId} not found or already offline.`);
+    }
+  },
+});
+
+/**
+ * DANGEROUS: Delete all users from the database
+ * This is intended for development/testing purposes only
+ */
+export const deleteAllUsers = mutation({
+  args: {
+    confirmationPhrase: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Safety check - require a specific confirmation phrase
+    if (args.confirmationPhrase !== "ERASE_ALL_USERS_CONFIRM") {
+      throw new Error("Incorrect confirmation phrase. Operation aborted for safety.");
+    }
+
+    // Get all user IDs
+    const users = await ctx.db.query("users").collect();
+    const userIds = users.map(user => user._id);
+    
+    console.log(`Preparing to delete ${userIds.length} users from the database`);
+    
+    // Delete all users
+    let deletedCount = 0;
+    for (const userId of userIds) {
+      await ctx.db.delete(userId);
+      deletedCount++;
+      
+      // Log progress in batches to avoid console spam
+      if (deletedCount % 10 === 0 || deletedCount === userIds.length) {
+        console.log(`Deleted ${deletedCount}/${userIds.length} users`);
+      }
+    }
+    
+    return {
+      success: true,
+      deletedCount,
+      message: `Successfully deleted ${deletedCount} users from the database.`
+    };
   },
 });
