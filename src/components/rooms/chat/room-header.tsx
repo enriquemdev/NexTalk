@@ -49,7 +49,7 @@ export const RoomHeader = ({
         </div>
 
         <div className="flex items-center space-x-2">
-          <SummaryRoomModal />
+          <SummaryRoomModal roomId={roomId} />
 
           <Button variant="outline" size="icon">
             <Mic className="h-4 w-4" />

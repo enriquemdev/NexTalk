@@ -19,6 +19,7 @@ import type * as notifications from "../notifications.js";
 import type * as reactions from "../reactions.js";
 import type * as recordings from "../recordings.js";
 import type * as rooms from "../rooms.js";
+import type * as summaries from "../summaries.js";
 import type * as users from "../users.js";
 import type * as videoRooms from "../videoRooms.js";
 
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   reactions: typeof reactions;
   recordings: typeof recordings;
   rooms: typeof rooms;
+  summaries: typeof summaries;
   users: typeof users;
   videoRooms: typeof videoRooms;
 }>;
