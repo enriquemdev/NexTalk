@@ -16,6 +16,7 @@ import { Id } from "convex/_generated/dataModel";
 import { RoomHeader } from "@/components/rooms/chat/room-header";
 import { MessageList } from "@/components/rooms/chat/message-list";
 import { MessageInput } from "@/components/rooms/chat/message-input";
+import { SummaryRoomModal } from "@/components/rooms/chat/summary-room-modal";
 
 interface RoomClientComponentProps {
   roomId: Id<"rooms">;
@@ -258,14 +259,11 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
           </div>
         )} */}
 
-<<<<<<< HEAD
-=======
         <SummaryRoomModal
           roomId={room._id}
           isOpen={true}
           onOpenChange={() => {}}
         />
->>>>>>> privaterooms
         {/* <div className="mb-6">
           <div className="flex justify-between items-start">
             <div>

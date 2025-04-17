@@ -40,6 +40,7 @@ export const list = query({
       participantCount: v.optional(v.number()),
       peakParticipantCount: v.optional(v.number()),
       accessCode: v.optional(v.string()),
+      type: v.union(v.literal('audio'), v.literal('video')),
     })
   ),
   handler: async (ctx, args) => {

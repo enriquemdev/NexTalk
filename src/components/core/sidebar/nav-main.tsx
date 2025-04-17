@@ -24,7 +24,6 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useRooms } from "@/hooks/useRooms";
-import { CreateRoomForm } from "@/components/CreateRoomForm";
 import Link from "next/link";
 
 const nav = [
@@ -98,9 +97,6 @@ export function NavMain() {
     <SidebarGroup>
       <div className="flex gap-4 items-center justify-between my-4">
         <SidebarGroupLabel>Rooms</SidebarGroupLabel>
-        <SidebarGroupLabel>
-          <CreateRoomForm />
-        </SidebarGroupLabel>
       </div>
       <SidebarMenu>
         {new_nav.map((item) => (
