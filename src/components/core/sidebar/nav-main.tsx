@@ -5,7 +5,6 @@ import {
   CircleCheckIcon,
   DiscIcon,
   MegaphoneIcon,
-  Settings2,
 } from "lucide-react";
 
 import {
@@ -45,28 +44,13 @@ const nav = [
     icon: DiscIcon,
     items: [{ _id: undefined, name: "No available" }],
   },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings2,
-    items: [{ _id: undefined, name: "No available" }],
-  },
 ];
+
 export function NavMain() {
   const { useLiveRooms, useScheduledRooms } = useRooms();
 
   const liveRooms = useLiveRooms({ type: "live", limit: 10 });
   const scheduledRooms = useScheduledRooms({ type: "scheduled", limit: 10 });
-
-  // if (liveRooms?.length === 0) {
-  //   return (
-  //     <div className="p-4 rounded-lg border">
-  //       <Skeleton className="h-6 w-3/4 mb-2" />
-  //       <Skeleton className="h-4 w-full mb-2" />
-  //       <Skeleton className="h-4 w-1/2" />
-  //     </div>
-  //   );
-  // }
 
   const new_nav = nav.map((nav) => {
     switch (nav.title) {

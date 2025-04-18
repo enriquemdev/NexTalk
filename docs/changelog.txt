@@ -1014,80 +1014,20 @@ Implementation Details:
 
 Purpose: This UI simplification focuses user attention on the two most important actions: joining rooms and inviting others. By removing the less frequently used share functionality, the interface becomes cleaner and more focused on the core user journey. 
 
-Date: 2024-08-28
+Date: 2024-09-13
 
-FEATURE: Invitation Management in Sidebar
+FIX: Sent Invitations Not Appearing in User Interface
 
-Description: Added a dedicated section in the sidebar for managing sent and received invitations.
-
-Implementation Details:
-1. Backend Enhancements:
-   - Created Convex queries to fetch sent and received invitations
-   - Added new index to the invitations table for efficient querying
-   - Enhanced schema to support invitation management features
-
-2. UI Components:
-   - Created new NavInvitations component for the sidebar
-   - Added collapsible sections for both sent and received invitations
-   - Implemented badge counters to show invitation counts
-   - Included timestamps and sender/recipient information
-   - Added direct links to access rooms from invitations
-
-3. UX Improvements:
-   - Automatically expands received invitations section when invitations are present
-   - Shows invitation status for sent invitations
-   - Provides relative timestamps using date-fns
-   - Includes empty states when no invitations are present
-
-Purpose: This feature provides users with a centralized place to manage their invitations, making it easier to keep track of rooms they've been invited to and invitations they've sent to others. 
-
-Date: 2024-08-28
-
-FIX: NavInvitations Component Export
-
-Description: Fixed the NavInvitations component that was missing from the sidebar due to export issues.
+Description: Fixed an issue where sent invitations were not being properly recorded and displayed in the Sent Invitations tab.
 
 Implementation Details:
-1. Added proper export to the NavInvitations component
-2. Fixed linter errors related to unused imports and variables
-3. Installed date-fns package for time formatting in the invitation lists
-4. Ensured proper integration with the app-sidebar component
+1. Added a function in the Convex backend to get a room ID from a video room name:
+   - Created getRoomIdByVideoRoomName query in rooms.ts to look up rooms by name
+   - This allows invitations sent from video rooms to be properly associated with room IDs
 
-Purpose: This fix resolves the build error "Export NavInvitations doesn't exist in target module" that prevented the invitations management functionality from working in the sidebar. 
+2. Enhanced the InviteModal component:
+   - Updated the component to create proper invitation records in Convex when sending invitations
+   - Added logic to fetch room IDs from room names when a direct roomId isn't provided
+   - Improved parameter handling to support both direct room IDs and room names
 
-Date: 2024-08-28
-
-UPDATE: Changed Email Sender Domain for Invitations
-
-Description: Updated the email sender domain from Resend's shared domain to the custom domain arturomejia.dev.
-
-Implementation Details:
-1. Changed the "from" address in the invitation email API from:
-   - "NexTalk <onboarding@resend.dev>" (Resend's shared domain)
-   - To: "NexTalk <invites@arturomejia.dev>" (Custom verified domain)
-2. Updated the configuration to use the invites@ email prefix for better deliverability and branding
-
-Purpose: This change provides better email deliverability, reduces the chance of emails being marked as spam, and improves the application's branding with a consistent domain name. Users will now receive invitation emails from a professional domain matching the application. 
-
-Date: 2024-10-05
-
-FEATURE: Invitations Page Implementation
-
-Description: Added a dedicated invitations page that allows users to view and manage both sent and received room invitations.
-
-Implementation Details:
-1. Page Structure:
-   - Created a new page at src/app/(app)/invitations/page.tsx
-   - Implemented a tab-based interface to toggle between sent and received invitations
-   - Added informative headers and descriptions for better user experience
-
-2. Component Integration:
-   - Integrated existing InvitationsTable component with tab-based navigation
-   - Utilized the tabs component from shadcn/ui for the toggle interface
-   - Used Lucide icons for visual indicators (MailQuestionIcon, MailCheckIcon)
-
-3. Navigation Improvements:
-   - Connected the page with the existing sidebar navigation
-   - Ensured proper routing between invitations page and rooms
-
-Purpose: This implementation provides users with a centralized location to manage all their room invitations, improving user experience by making it easier to track both sent and received invitations.
+Purpose: This fix ensures that when users send invitations to others, those invitations are properly recorded in the database and displayed in the Sent Invitations tab, improving invitation tracking and management. 

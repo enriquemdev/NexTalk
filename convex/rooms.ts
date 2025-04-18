@@ -1064,3 +1064,69 @@ export const count = query({
     return rooms.length;
   },
 });
+
+/**
+ * Get a room ID by video room name
+ */
+export const getRoomIdByVideoRoomName = query({
+  args: {
+    roomName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    console.log("getRoomIdByVideoRoomName called with roomName:", args.roomName);
+    
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      console.log("getRoomIdByVideoRoomName: No authenticated user");
+      return null;
+    }
+
+    // First, find the videoRoom by name
+    const videoRoom = await ctx.db
+      .query("videoRooms")
+      .withIndex("by_name", (q) => q.eq("name", args.roomName))
+      .first();
+
+    if (!videoRoom) {
+      console.log(`Video room not found with name: ${args.roomName}`);
+      
+      // If no video room found, try to find a regular room with the same name directly
+      console.log("Trying to find a regular room with the same name...");
+      const rooms = await ctx.db
+        .query("rooms")
+        .filter((q) => q.eq(q.field("name"), args.roomName))
+        .collect();
+      
+      if (rooms.length > 0) {
+        console.log(`Found ${rooms.length} regular rooms with name: ${args.roomName}`);
+        // If multiple rooms have the same name, use the most recently created one
+        rooms.sort((a, b) => b.createdAt - a.createdAt);
+        console.log("Using room ID:", rooms[0]._id);
+        return rooms[0]._id;
+      } else {
+        console.log("No regular rooms found either");
+        return null;
+      }
+    }
+    
+    console.log("Found video room:", videoRoom);
+
+    // Then, find the corresponding room with the same name
+    // Since rooms don't have a by_name index, we'll do a broader query and filter
+    const rooms = await ctx.db
+      .query("rooms")
+      .filter((q) => q.eq(q.field("name"), args.roomName))
+      .collect();
+
+    if (rooms.length === 0) {
+      console.log(`No room found with name: ${args.roomName}`);
+      return null;
+    }
+
+    console.log(`Found ${rooms.length} rooms with name: ${args.roomName}`);
+    // If multiple rooms have the same name, use the most recently created one
+    rooms.sort((a, b) => b.createdAt - a.createdAt);
+    console.log("Using room ID:", rooms[0]._id);
+    return rooms[0]._id;
+  },
+});

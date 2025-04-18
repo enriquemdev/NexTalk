@@ -19,9 +19,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, Mail, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRoomContext } from '@livekit/components-react';
-import { useQuery } from 'convex/react';
-import { api } from 'convex/_generated/api';
-import { Id } from 'convex/_generated/dataModel';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface User {
   _id: Id<"users">;
@@ -34,29 +34,49 @@ interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
   roomName: string;
+  roomId?: Id<"rooms">;
 }
 
-export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
-  const [manualEmail, setManualEmail] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: InviteModalProps) {
+  const [activeTab, setActiveTab] = useState<string>('users');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [manualEmail, setManualEmail] = useState<string>('');
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
-  const [isSending, setIsSending] = useState(false);
-  const [activeTab, setActiveTab] = useState('users');
+  const [isSending, setIsSending] = useState<boolean>(false);
   
   const room = useRoomContext();
   
-  // Fetch users from Convex
-  const users = useQuery(api.users.listUsers, { limit: 50 }) || [];
+  // Fetch all users for selection
+  const users = useQuery(api.users.listUsers, {}) || [];
   
-  // Filter users based on search query
-  const filteredUsers = searchQuery.trim() === '' 
-    ? users 
-    : users.filter((user: User) => 
-        (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+  // Add the createInvitation mutation
+  const createInvitation = useMutation(api.invitations.createInvitation);
+  
+  // Get the room ID from the room name if not provided directly
+  const roomIdFromName = useQuery(api.rooms.getRoomIdByVideoRoomName, { 
+    roomName 
+  });
+  
+  // Determine the final room ID to use
+  const roomId = propRoomId || roomIdFromName;
 
-  // Toggle user selection
+  // Debug logging
+  useEffect(() => {
+    console.log('InviteModal - Room name:', roomName);
+    console.log('InviteModal - Direct Room ID:', propRoomId);
+    console.log('InviteModal - Room ID from name lookup:', roomIdFromName);
+    console.log('InviteModal - Final Room ID to use:', roomId);
+  }, [roomName, propRoomId, roomIdFromName, roomId]);
+
+  // Filter users based on search query
+  const filteredUsers = searchQuery.trim()
+    ? users.filter(user => 
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : users;
+
+  // Toggle user selection in the list
   const toggleUserSelection = (user: User) => {
     if (selectedUsers.some(u => u._id === user._id)) {
       setSelectedUsers(selectedUsers.filter(u => u._id !== user._id));
@@ -65,7 +85,7 @@ export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
     }
   };
 
-  // Clear selections when modal closes
+  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setManualEmail('');
@@ -87,8 +107,16 @@ export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
       toast.error('Please select at least one user');
       return;
     }
+
+    // Validate room ID is available
+    if (!roomId) {
+      console.error('Room ID is missing - cannot send invitation');
+      toast.error('Room information is missing');
+      return;
+    }
     
     setIsSending(true);
+    console.log('handleSendInvite - Starting to send invitations with roomId:', roomId);
     
     try {
       // Send invitations to selected users or manual email
@@ -102,20 +130,38 @@ export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
           throw new Error('No valid email addresses found');
         }
         
+        console.log(`handleSendInvite - Sending to ${emails.length} users:`, emails);
+        
         // Send invitations to each email
         let failedEmails = 0;
         await Promise.all(emails.map(async (email) => {
           try {
+            // Create invitation record in Convex
+            console.log(`Creating Convex invitation record for ${email} with roomId:`, roomId);
+            const invitationResult = await createInvitation({
+              roomId,
+              email
+            });
+            console.log(`Invitation record created:`, invitationResult);
+            
+            // Send email notification
             await sendInvitation(email);
           } catch (error) {
             failedEmails++;
             console.error(`Error sending to ${email}:`, error);
-            throw error; // Rethrow to be caught by the outer catch
           }
         }));
         
         toast.success(`Invitations sent to ${emails.length - failedEmails} users`);
       } else {
+        // Create invitation record in Convex
+        console.log(`Creating Convex invitation record for ${manualEmail.trim()} with roomId:`, roomId);
+        const invitationResult = await createInvitation({
+          roomId,
+          email: manualEmail.trim()
+        });
+        console.log(`Invitation record created:`, invitationResult);
+        
         // Send to manually entered email
         await sendInvitation(manualEmail.trim());
         toast.success(`Invitation sent to ${manualEmail}`);
@@ -135,6 +181,8 @@ export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
   
   // Helper function to send invitation to a single email
   const sendInvitation = async (email: string) => {
+    console.log(`sendInvitation - Sending email to ${email} for room:`, roomName);
+    
     const response = await fetch('/api/invite', {
       method: 'POST',
       headers: {
@@ -144,15 +192,19 @@ export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
         email,
         roomName,
         hostName: room.localParticipant.identity,
+        roomId,
       }),
     });
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: `Failed to send invitation to ${email}` }));
+      console.error('Email API error:', errorData);
       throw new Error(errorData.message || `Failed to send invitation to ${email}`);
     }
     
-    return response.json();
+    const result = await response.json();
+    console.log('Email API response:', result);
+    return result;
   };
 
   return (

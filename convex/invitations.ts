@@ -347,4 +347,55 @@ export const getReceivedInvitations = query({
 
     return invitationsWithDetails;
   }
+});
+
+/**
+ * Mutation to cancel a pending invitation that was sent by the current user.
+ * @param invitationId - The ID of the invitation to cancel
+ * @returns Success indicator
+ * @throws Error if invitation not found or user is not the sender
+ */
+export const cancelInvitation = mutation({
+  args: {
+    invitationId: v.id("invitations"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    // Get the user's record
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Get the invitation
+    const invitation = await ctx.db.get(args.invitationId);
+    if (!invitation) {
+      throw new Error("Invitation not found");
+    }
+
+    // Verify that the current user is the one who sent the invitation
+    if (invitation.invitedBy.toString() !== user._id.toString()) {
+      throw new Error("You are not authorized to cancel this invitation");
+    }
+
+    // Check that the invitation is still pending
+    if (invitation.status !== "pending") {
+      throw new Error("Invitation is no longer pending and cannot be canceled");
+    }
+
+    // Mark invitation as expired
+    await ctx.db.patch(args.invitationId, {
+      status: "expired",
+    });
+
+    return { success: true };
+  },
 }); 
