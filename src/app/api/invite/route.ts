@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     try {
       // Send the email - use a verified domain from Resend dashboard
       const { data, error } = await resend.emails.send({
-        from: 'NexTalk <onboarding@resend.dev>', // Using Resend's shared domain
+        from: 'NexTalk <invites@arturomejia.dev>', // Using custom verified domain
         to: email,
         subject,
         html,

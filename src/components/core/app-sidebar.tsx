@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { NavMain } from "./sidebar/nav-main";
 import { NavUser } from "./sidebar/nav-user";
+import { NavInvitations } from "./sidebar/nav-invitations";
 import Link from "next/link";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -37,6 +38,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain />
+        <NavInvitations />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

@@ -217,5 +217,7 @@ export default defineSchema({
     // Find expired invitations (for cleanup)
     .index("by_expiry", ["expiresAt"])
     // Find invitations by status (for filtering/cleanup)
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    // Find invitations by email and status (for listing received invitations)
+    .index("by_email_and_status", ["email", "status"]),
 }); 

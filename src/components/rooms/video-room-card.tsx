@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
-import { Video, Users, ExternalLink, Lock } from "lucide-react";
+import { Users, Lock, Mail } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import { InviteUsers } from "./invite-users";
 
 interface VideoRoomCardProps {
   roomId: Id<"rooms">;
@@ -72,16 +72,6 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
     }
   };
 
-  const handleShareRoom = () => {
-    const roomUrl = `${window.location.origin}/video-rooms/${roomId}`;
-    navigator.clipboard.writeText(roomUrl).then(() => {
-      toast.success("Room link copied!");
-    }).catch(err => {
-      console.error('Failed to copy', err);
-      toast.error("Failed to copy link.");
-    });
-  };
-
   return (
     <>
       <Card className="overflow-hidden transition-all hover:shadow-md">
@@ -114,17 +104,20 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
             className="w-1/2 cursor-pointer"
             onClick={handleJoinClick}
           >
-            Join Room
+            Join
           </Button>
-          <Button 
-            variant="secondary"
-            className="w-1/2 p-2 cursor-pointer" 
-            onClick={handleShareRoom}
-            title="Share room link"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span className="sr-only">Share Room</span>
-          </Button>
+          <InviteUsers 
+            roomId={roomId}
+            trigger={
+              <Button 
+                variant="outline" 
+                className="w-1/2 cursor-pointer"
+              >
+                <Mail className="w-4 h-4 mr-1" />
+                Invite
+              </Button>
+            }
+          />
         </CardFooter>
       </Card>
 

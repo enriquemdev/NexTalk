@@ -975,3 +975,119 @@ Implementation Details:
 3. Updated error handling to provide clearer messages about domain verification requirements
 
 Purpose: This update ensures that invitation emails can be sent to any recipient using Resend's shared domain, without requiring domain verification during development. For production use, domain verification is still recommended for better deliverability and branding. 
+
+Date: 2024-08-28
+
+FEATURE: Added Invite Button to Video Room Cards
+
+Description: Added email invitation functionality directly to video room cards on the homepage.
+
+Implementation Details:
+1. UI Enhancements:
+   - Added an Invite button to the VideoRoomCard component between the Join and Share buttons
+   - Used the Mail icon for the invite button to make its function clear
+   - Maintained consistent styling with other buttons in the card
+
+2. Functionality Integration:
+   - Integrated the existing InviteUsers component to handle the invitation process
+   - Reused the same email sending logic and UI for consistency across the application
+   - Supports both inviting registered users and sending direct email invitations
+
+Purpose: This enhancement makes it easier for users to invite others to join video rooms directly from the homepage, improving user experience and encouraging collaboration without requiring users to first join the room. 
+
+Date: 2024-08-28
+
+UPDATE: Simplified Video Room Card UI
+
+Description: Removed the Share button from video room cards to simplify the UI and focus on primary actions.
+
+Implementation Details:
+1. UI Changes:
+   - Removed the Share button (with ExternalLink icon) from video room cards
+   - Adjusted the remaining buttons (Join and Invite) to use full width (50% each)
+   - Simplified the visual appearance for better focus on primary actions
+
+2. Code Cleanup:
+   - Removed unused handleShareRoom function
+   - Removed unused imports
+   - Improved code maintainability
+
+Purpose: This UI simplification focuses user attention on the two most important actions: joining rooms and inviting others. By removing the less frequently used share functionality, the interface becomes cleaner and more focused on the core user journey. 
+
+Date: 2024-08-28
+
+FEATURE: Invitation Management in Sidebar
+
+Description: Added a dedicated section in the sidebar for managing sent and received invitations.
+
+Implementation Details:
+1. Backend Enhancements:
+   - Created Convex queries to fetch sent and received invitations
+   - Added new index to the invitations table for efficient querying
+   - Enhanced schema to support invitation management features
+
+2. UI Components:
+   - Created new NavInvitations component for the sidebar
+   - Added collapsible sections for both sent and received invitations
+   - Implemented badge counters to show invitation counts
+   - Included timestamps and sender/recipient information
+   - Added direct links to access rooms from invitations
+
+3. UX Improvements:
+   - Automatically expands received invitations section when invitations are present
+   - Shows invitation status for sent invitations
+   - Provides relative timestamps using date-fns
+   - Includes empty states when no invitations are present
+
+Purpose: This feature provides users with a centralized place to manage their invitations, making it easier to keep track of rooms they've been invited to and invitations they've sent to others. 
+
+Date: 2024-08-28
+
+FIX: NavInvitations Component Export
+
+Description: Fixed the NavInvitations component that was missing from the sidebar due to export issues.
+
+Implementation Details:
+1. Added proper export to the NavInvitations component
+2. Fixed linter errors related to unused imports and variables
+3. Installed date-fns package for time formatting in the invitation lists
+4. Ensured proper integration with the app-sidebar component
+
+Purpose: This fix resolves the build error "Export NavInvitations doesn't exist in target module" that prevented the invitations management functionality from working in the sidebar. 
+
+Date: 2024-08-28
+
+UPDATE: Changed Email Sender Domain for Invitations
+
+Description: Updated the email sender domain from Resend's shared domain to the custom domain arturomejia.dev.
+
+Implementation Details:
+1. Changed the "from" address in the invitation email API from:
+   - "NexTalk <onboarding@resend.dev>" (Resend's shared domain)
+   - To: "NexTalk <invites@arturomejia.dev>" (Custom verified domain)
+2. Updated the configuration to use the invites@ email prefix for better deliverability and branding
+
+Purpose: This change provides better email deliverability, reduces the chance of emails being marked as spam, and improves the application's branding with a consistent domain name. Users will now receive invitation emails from a professional domain matching the application. 
+
+Date: 2024-10-05
+
+FEATURE: Invitations Page Implementation
+
+Description: Added a dedicated invitations page that allows users to view and manage both sent and received room invitations.
+
+Implementation Details:
+1. Page Structure:
+   - Created a new page at src/app/(app)/invitations/page.tsx
+   - Implemented a tab-based interface to toggle between sent and received invitations
+   - Added informative headers and descriptions for better user experience
+
+2. Component Integration:
+   - Integrated existing InvitationsTable component with tab-based navigation
+   - Utilized the tabs component from shadcn/ui for the toggle interface
+   - Used Lucide icons for visual indicators (MailQuestionIcon, MailCheckIcon)
+
+3. Navigation Improvements:
+   - Connected the page with the existing sidebar navigation
+   - Ensured proper routing between invitations page and rooms
+
+Purpose: This implementation provides users with a centralized location to manage all their room invitations, improving user experience by making it easier to track both sent and received invitations.
