@@ -7,7 +7,6 @@ import {
   LiveKitRoom,
   LocalUserChoices,
   PreJoin,
-  VideoConference,
 } from '@livekit/components-react';
 import {
   ExternalE2EEKeyProvider,
@@ -24,6 +23,9 @@ import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
+
+// Import our custom component
+import { CustomVideoConference } from '@/components/video-rooms/custom-video-conference';
 
 // Ensure CONN_DETAILS_ENDPOINT uses the process.env variable or defaults
 const CONN_DETAILS_ENDPOINT =
@@ -307,7 +309,7 @@ function VideoConferenceComponent(props: {
         onEncryptionError={handleEncryptionError}
         onError={handleError}
       >
-        <VideoConference
+        <CustomVideoConference
           chatMessageFormatter={formatChatMessageLinks}
         />
       </LiveKitRoom>
