@@ -1031,3 +1031,38 @@ Implementation Details:
    - Improved parameter handling to support both direct room IDs and room names
 
 Purpose: This fix ensures that when users send invitations to others, those invitations are properly recorded in the database and displayed in the Sent Invitations tab, improving invitation tracking and management. 
+
+## YYYY-MM-DD - UI/UX Refinements & Cleanup
+
+-   **Area**: Homepage (`src/app/(app)/page.tsx`)
+    -   **Change**: Adjusted layout spacing for better visual consistency.
+    -   **Details**: Increased container vertical padding (`py-8`), increased gap between video room cards (`gap-6`), increased margin below video rooms section title (`mb-6`).
+-   **Component**: `src/components/rooms/video-room-card.tsx`
+    -   **Change**: Standardized internal padding and increased footer action gap.
+    -   **Details**: Adjusted padding in `CardHeader` and `CardContent` for better consistency. Increased `gap` in `CardFooter` between buttons from `gap-2` to `gap-4`.
+-   **Area**: Invitations Table (`src/components/invitations/invitations-table.tsx`)
+    -   **Change**: Reviewed component for consistency.
+    -   **Details**: Found component uses standard Shadcn Table and Card components consistently. No major spacing adjustments needed.
+-   **Area**: Homepage (`src/app/(app)/page.tsx`)
+    -   **Change**: Removed development utility sections from the UI.
+    -   **Details**: Commented out the JSX for the "Debug Info" (using `DebugConvex`) and "Development Tools" (using `AlertDialog` for room deletion) sections. Also removed associated unused imports, state, and handler functions.
+-   **Component**: `src/components/ui/card.tsx`
+    -   **Change**: Reverted Framer Motion animation attempt.
+    -   **Details**: Removed `motion.div` wrapper and animation props due to persistent TypeScript type errors, restoring the component to its original state.
+
+## YYYY-MM-DD - UI Enhancements
+
+-   **Component**: `src/components/ui/button.tsx`
+    -   **Change**: Attempted to integrate Framer Motion for hover/tap animations.
+    -   **Details**: Encountered TypeScript type conflicts with Radix UI's `Slot` component when wrapping with `motion`. Reverted changes as direct integration proved complex. Further investigation needed for animating Slot-based components.
+-   **Component**: `src/components/ui/card.tsx`
+    -   **Change**: Added Framer Motion hover animation.
+    -   **Details**: Wrapped the main `Card` component with `motion.div` and added `whileHover` effect (slight lift `y: -3` and increased shadow `boxShadow: \"var(--tw-shadow-md)\"`) for enhanced interactivity. Uses a spring transition for smooth effect. 
+
+-   **Area**: Homepage (`src/app/(app)/page.tsx`)
+    -   **Change**: Added consistent top margin between sections.
+    -   **Details**: Added `className="mt-12"` to `LiveRoomsSection` and `UpcomingRoomsSection` to ensure uniform spacing relative to the preceding section. 
+
+-   **Area**: Homepage & Section Components
+    -   **Change**: Increased spacing above sections and below section titles.
+    -   **Details**: Increased top margin for Video Rooms, Live Rooms, and Upcoming Rooms sections from `mt-12` to `mt-16` in `src/app/(app)/page.tsx` (wrapping component calls in divs where needed). Increased bottom margin for titles within `LiveRoomsSection` and `UpcomingRoomsSection` from `mb-4` to `mb-6` for visual balance. 

@@ -75,7 +75,7 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
   return (
     <>
       <Card className="overflow-hidden transition-all hover:shadow-md">
-        <CardHeader className="pb-2">
+        <CardHeader className="pt-6 pb-4">
           <div className="flex justify-between items-start">
             {isPrivate && (
               <span title="Private Room">
@@ -91,14 +91,14 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
           </div>
         </CardHeader>
         
-        <CardContent className="pb-2">
+        <CardContent>
           <div className="flex items-center text-sm text-muted-foreground">
             <Users className="w-4 h-4 mr-2" />
             <span>{isPrivate ? "Private Video Room" : "Public Video Room"}</span>
           </div>
         </CardContent>
         
-        <CardFooter className="flex gap-2 w-full">
+        <CardFooter className="flex gap-4 w-full">
           <Button 
             variant="default"
             className="w-1/2 cursor-pointer"

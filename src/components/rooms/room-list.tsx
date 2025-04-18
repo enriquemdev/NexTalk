@@ -5,6 +5,7 @@ import { api } from "convex/_generated/api";
 import { VideoRoomCard } from "./video-room-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Id } from "convex/_generated/dataModel";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 interface RoomListProps {
   type: "live" | "scheduled" | "ended" | "recommended" | "user";
@@ -47,13 +48,20 @@ export function RoomList({ type, userId, limit = 10 }: RoomListProps) {
   // Loading state
   if (rooms === undefined) {
     return (
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="p-4 rounded-lg border">
-            <Skeleton className="h-6 w-3/4 mb-2" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-1/2" />
-          </div>
+          <Card key={i} className="overflow-hidden">
+            <CardHeader className="pt-6 pb-4">
+              <Skeleton className="h-6 w-3/4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-4 w-full mb-2" />
+            </CardContent>
+            <CardFooter className="flex gap-4 w-full">
+              <Skeleton className="h-9 w-1/2" />
+              <Skeleton className="h-9 w-1/2" />
+            </CardFooter>
+          </Card>
         ))}
       </div>
     );
@@ -73,18 +81,17 @@ export function RoomList({ type, userId, limit = 10 }: RoomListProps) {
     );
   }
 
-  // Render the rooms
+  // Render the rooms using the same grid layout as the homepage video section
   return (
-    <div className="space-y-4 flex flex-wrap gap-4 justify-center">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {rooms.map((room) => (
-        <div key={room._id.toString()} className="w-full max-w-lg">
-          <VideoRoomCard 
-            roomId={room._id}
-            roomName={room.name}
-            isPrivate={room.isPrivate}
-            isActive={room.status === 'live'}
-          />
-        </div>
+        <VideoRoomCard
+          key={room._id.toString()}
+          roomId={room._id}
+          roomName={room.name}
+          isPrivate={room.isPrivate}
+          isActive={room.status === 'live'}
+        />
       ))}
     </div>
   );
