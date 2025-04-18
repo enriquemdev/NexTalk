@@ -1,109 +1,83 @@
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../../convex/_generated/api";
-import { sendRoomInviteEmail } from "@/lib/email";
-import { getAuth } from "@clerk/nextjs/server";
-import { NextResponse, NextRequest } from "next/server";
-import { Id } from "../../../../convex/_generated/dataModel";
-import { z } from 'zod';
-import { RateLimiterMemory } from 'rate-limiter-flexible';
+import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// Initialize Resend with API key
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-// Email validation schema
-const emailSchema = z.string().email();
+// Error response helper function
+const errorResponse = (message: string, status = 400) => {
+  return NextResponse.json(
+    { success: false, message },
+    { status }
+  );
+};
 
-// Rate Limiter configuration (e.g., 5 requests per minute per user)
-const rateLimiter = new RateLimiterMemory({
-  points: 5, // Number of points
-  duration: 60, // Per 60 seconds
-});
-
-/**
- * API route to send an invitation email for a room.
- * POST /api/invite
- * @body {roomId: string, email: string}
- */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    // Get auth details from the request
-    const auth = getAuth(request);
-    const userId = auth.userId;
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+    // Check if Resend is configured
+    if (!resend) {
+      console.error('Resend API key is not configured');
+      return errorResponse('Email service is not configured', 500);
     }
 
-    // Consume rate limiter point
-    try {
-      await rateLimiter.consume(userId);
-    } catch (_rejRes) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    // Parse request body
+    const body = await request.json();
+    const { email, roomName, hostName } = body;
+
+    // Validate required fields
+    if (!email) {
+      return errorResponse('Email is required');
+    }
+    if (!roomName) {
+      return errorResponse('Room name is required');
     }
 
-    const { roomId, email } = await request.json();
-    if (!roomId || !email) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
+    // Generate invite URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const inviteUrl = `${baseUrl}/video-rooms/${roomName}`;
 
-    // Validate email format
-    try {
-      emailSchema.parse(email);
-    } catch (_error) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
-    }
+    // Build email content
+    const subject = `${hostName || 'Someone'} invited you to a NexTalk video call`;
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #0f172a; margin-bottom: 16px;">You've been invited to a NexTalk video call</h2>
+        <p style="color: #64748b; margin-bottom: 24px;">
+          ${hostName || 'Someone'} has invited you to join a video call on NexTalk.
+        </p>
+        <div style="margin-bottom: 32px;">
+          <a href="${inviteUrl}" 
+             style="background-color: #3b82f6; color: white; padding: 12px 24px; 
+                    text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Join Call
+          </a>
+        </div>
+        <p style="color: #64748b; font-size: 14px;">
+          Or copy this link into your browser: <span style="color: #0f172a;">${inviteUrl}</span>
+        </p>
+      </div>
+    `;
 
-    // Create invitation in Convex
-    const invitationResult = await convex.mutation(api.invitations.createInvitation, {
-      roomId: roomId as Id<"rooms">,
-      email: email,
-    });
-
-    // Robust check for successful invitation creation and token existence
-    if (!invitationResult || typeof invitationResult !== 'object' || !('token' in invitationResult) || typeof invitationResult.token !== 'string') {
-      console.error("Invalid invitation result from Convex:", invitationResult);
-      throw new Error("Failed to create invitation token in Convex");
-    }
-    const inviteToken = invitationResult.token;
-
-    // Get room details
-    const room = await convex.query(api.rooms.get, { roomId: roomId as Id<"rooms"> });
-    if (!room) {
-      return NextResponse.json({ error: "Room not found" }, { status: 404 });
-    }
-
-    // Get inviter details - assuming getByToken expects the Clerk user ID
-    const inviter = await convex.query(api.users.getByToken, { 
-      tokenIdentifier: userId
-    });
-    if (!inviter) {
-      return NextResponse.json({ error: "Inviting user not found" }, { status: 404 });
-    }
-
-    // Generate invitation link
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
-    const inviteLink = `${baseUrl}/invite/${inviteToken}`;
-
-    // Send email
-    const emailParams = {
+    // Send the email
+    const { data, error } = await resend.emails.send({
+      from: 'NexTalk <noreply@resend.dev>',
       to: email,
-      inviterName: inviter.name || "A NexTalk user",
-      roomName: room.name,
-      inviteLink,
-    };
-    await sendRoomInviteEmail(emailParams);
+      subject,
+      html,
+    });
 
-    return NextResponse.json({ success: true });
+    if (error) {
+      console.error('Error sending email:', error);
+      return errorResponse('Failed to send invitation', 500);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Invitation sent successfully',
+      data
+    });
   } catch (error) {
-    console.error("Invite API error:", error);
-    return NextResponse.json(
-      { error: "Failed to process invitation" }, 
-      { status: 500 }
-    );
+    console.error('Error processing invitation:', error);
+    return errorResponse('Internal server error', 500);
   }
 } 

@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import {
   ConnectionStateToast,
-  ControlBar,
   FocusLayout,
   FocusLayoutContainer,
   GridLayout,
@@ -16,9 +15,14 @@ import {
   Chat,
   MessageFormatter,
   ParticipantTile as LiveKitParticipantTile,
+  useRoomContext,
+  ControlBar,
 } from '@livekit/components-react';
 import { Track, RoomEvent } from 'livekit-client';
 import { isEqualTrackRef, isTrackReference, TrackReferenceOrPlaceholder } from '@livekit/components-core';
+import { UserPlus } from 'lucide-react';
+import { InviteModal } from './invite-modal';
+import { Button } from '@/components/ui/button';
 
 export interface CustomVideoConferenceProps extends React.HTMLAttributes<HTMLDivElement> {
   chatMessageFormatter?: MessageFormatter;
@@ -33,6 +37,8 @@ export function CustomVideoConference({
     unreadMessages: 0,
     showSettings: false,
   });
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const room = useRoomContext();
 
   const lastAutoFocusedScreenShareTrack = React.useRef<TrackReferenceOrPlaceholder | null>(null);
 
@@ -112,15 +118,19 @@ export function CustomVideoConference({
               </FocusLayoutContainer>
             </div>
           )}
-          <ControlBar 
-            controls={{ 
-              microphone: true,
-              camera: true,
-              screenShare: true,
-              chat: true,
-              leave: true
-            }} 
-          />
+          
+          <ControlBar />
+          
+          {/* Invite Button */}
+          <div className="fixed top-5 left-5 z-20">
+            <Button 
+              onClick={() => setIsInviteModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <UserPlus className="h-5 w-5" />
+              <span>Invite</span>
+            </Button>
+          </div>
         </div>
         <Chat
           style={{ display: widgetState.showChat ? 'grid' : 'none' }}
@@ -129,6 +139,15 @@ export function CustomVideoConference({
       </LayoutContextProvider>
       <RoomAudioRenderer />
       <ConnectionStateToast />
+      
+      {/* Invite Modal */}
+      {room && (
+        <InviteModal 
+          isOpen={isInviteModalOpen} 
+          onClose={() => setIsInviteModalOpen(false)} 
+          roomName={room.name}
+        />
+      )}
     </div>
   );
 } 

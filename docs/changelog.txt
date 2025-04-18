@@ -934,3 +934,10 @@ Purpose: This fix ensures the admin rooms page loads correctly without any TypeS
 - Enhanced user search functionality with fallback to listing all users when search returns no results
 - Improved UI display with consistent handling of missing or undefined values
 - Fixed issues with user profiles showing "Unnamed User" and "No email available" 
+
+2024-07-11: Added Email Invitation Feature
+- Created custom video conference component with LiveKit's lower-level components
+- Added invitation button in the video conference UI
+- Implemented email invitation modal to send room invites
+- Created API route for sending email invitations using Resend
+- Improved user experience with custom styling and visual feedback 
