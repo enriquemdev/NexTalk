@@ -23,19 +23,23 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body = await request.json();
-    const { email, roomName, hostName } = body;
+    const { email, roomName, hostName, roomId } = body;
 
     // Validate required fields
     if (!email) {
       return errorResponse('Email is required');
     }
-    if (!roomName) {
-      return errorResponse('Room name is required');
+    
+    // At least one of roomName or roomId must be provided
+    if (!roomName && !roomId) {
+      return errorResponse('Room information is required');
     }
 
     // Generate invite URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const inviteUrl = `${baseUrl}/video-rooms/${roomName}`;
+    const inviteUrl = roomName 
+      ? `${baseUrl}/video-rooms/${roomName}`
+      : `${baseUrl}/rooms/${roomId}`;
 
     // Build email content
     const subject = `${hostName || 'Someone'} invited you to a NexTalk video call`;
@@ -58,26 +62,31 @@ export async function POST(request: Request) {
       </div>
     `;
 
-    // Send the email
-    const { data, error } = await resend.emails.send({
-      from: 'NexTalk <noreply@resend.dev>',
-      to: email,
-      subject,
-      html,
-    });
+    try {
+      // Send the email - use a verified domain from Resend dashboard
+      const { data, error } = await resend.emails.send({
+        from: 'NexTalk <onboarding@resend.dev>', // Using Resend's shared domain
+        to: email,
+        subject,
+        html,
+      });
 
-    if (error) {
-      console.error('Error sending email:', error);
-      return errorResponse('Failed to send invitation', 500);
+      if (error) {
+        console.error('Error sending email with Resend:', error);
+        return errorResponse(`Failed to send invitation: ${error.message}`, 500);
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Invitation sent successfully',
+        data
+      });
+    } catch (emailError) {
+      console.error('Exception sending email:', emailError);
+      return errorResponse(`Email sending error: ${emailError instanceof Error ? emailError.message : 'Unknown error'}`, 500);
     }
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Invitation sent successfully',
-      data
-    });
   } catch (error) {
     console.error('Error processing invitation:', error);
-    return errorResponse('Internal server error', 500);
+    return errorResponse(`Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
   }
 } 

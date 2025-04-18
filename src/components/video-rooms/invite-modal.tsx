@@ -103,11 +103,18 @@ export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
         }
         
         // Send invitations to each email
+        let failedEmails = 0;
         await Promise.all(emails.map(async (email) => {
-          await sendInvitation(email);
+          try {
+            await sendInvitation(email);
+          } catch (error) {
+            failedEmails++;
+            console.error(`Error sending to ${email}:`, error);
+            throw error; // Rethrow to be caught by the outer catch
+          }
         }));
         
-        toast.success(`Invitations sent to ${emails.length} users`);
+        toast.success(`Invitations sent to ${emails.length - failedEmails} users`);
       } else {
         // Send to manually entered email
         await sendInvitation(manualEmail.trim());
@@ -120,7 +127,7 @@ export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
       onClose();
     } catch (error) {
       console.error('Error sending invitation:', error);
-      toast.error('Failed to send invitation. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to send invitation. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -141,7 +148,8 @@ export function InviteModal({ isOpen, onClose, roomName }: InviteModalProps) {
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to send invitation to ${email}`);
+      const errorData = await response.json().catch(() => ({ message: `Failed to send invitation to ${email}` }));
+      throw new Error(errorData.message || `Failed to send invitation to ${email}`);
     }
     
     return response.json();

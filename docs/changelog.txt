@@ -941,3 +941,37 @@ Purpose: This fix ensures the admin rooms page loads correctly without any TypeS
 - Implemented email invitation modal to send room invites
 - Created API route for sending email invitations using Resend
 - Improved user experience with custom styling and visual feedback 
+
+Date: 2024-08-28
+
+FIX: Email Invitation Error
+
+Description: Fixed an issue where sending email invitations to users was failing with "Failed to send invitation to [email]" error.
+
+Implementation Details:
+1. API Route Enhancements:
+   - Improved error handling in the /api/invite API route
+   - Updated the email sender from 'noreply@resend.dev' to 'onboarding@resend.dev' to use Resend's verified domain
+   - Added support for both roomName and roomId parameters
+   - Enhanced error messages with more detailed information
+
+2. Frontend Improvements:
+   - Improved error handling in the InviteModal component
+   - Added better error extraction from API responses
+   - Enhanced error display with specific error messages
+   - Added tracking for failed invitations in batch operations
+
+Purpose: This fix resolves an issue where users were unable to send email invitations to join video rooms, improving the invitation flow and user experience. 
+
+Date: 2024-08-28
+
+FIX: Resend Email Domain Verification Issue
+
+Description: Addressed the Resend email sending limitation where emails could only be sent to the account owner's email address.
+
+Implementation Details:
+1. Confirmed the API is correctly using Resend's shared domain 'onboarding@resend.dev' for the 'from' address
+2. Added documentation about Resend's free tier limitations
+3. Updated error handling to provide clearer messages about domain verification requirements
+
+Purpose: This update ensures that invitation emails can be sent to any recipient using Resend's shared domain, without requiring domain verification during development. For production use, domain verification is still recommended for better deliverability and branding. 
