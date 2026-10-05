@@ -1,3 +1,4 @@
+import { requireUser, requireRoomAccess, requireAdmin } from "./access";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { nanoid } from "nanoid";
@@ -11,6 +12,8 @@ const INVITATION_EXPIRY = 24 * 60 * 60 * 1000;
 export const debugGetAllInvitations = query({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
+
     // Check for authentication
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -26,7 +29,7 @@ export const debugGetAllInvitations = query({
     // Get user info
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", `clerk:${identity.subject}`))
       .unique();
 
     // Return count by status and user info
@@ -70,7 +73,7 @@ export const createInvitation = mutation({
     // Get the user's record
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", `clerk:${identity.subject}`))
       .unique();
 
     if (!user) {
@@ -82,6 +85,9 @@ export const createInvitation = mutation({
     if (!room) {
       throw new Error("Room not found");
     }
+
+    await requireRoomAccess(ctx, args.roomId, true);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args.email) || args.email.length > 254) throw new Error("Invalid email");
 
     // Check if an active invitation already exists
     const existingInvitation = await ctx.db
@@ -101,6 +107,8 @@ export const createInvitation = mutation({
       return existingInvitation;
     }
 
+    const recent = await ctx.db.query("invitations").withIndex("by_inviter_createdAt", q => q.eq("invitedBy", user._id).gte("createdAt", Date.now() - 3600000)).take(10);
+    if (recent.length >= 10) throw new Error("RATE_LIMITED");
     // Create a new invitation
     const token = nanoid(32); // Generate a secure token
     const now = Date.now();
@@ -115,7 +123,7 @@ export const createInvitation = mutation({
       invitedBy: user._id,
     });
 
-    return invitation;
+    return await ctx.db.get(invitation);
   },
 });
 
@@ -185,6 +193,8 @@ export const useInvitation = mutation({
     token: v.string(),
   },
   handler: async (ctx, args) => {
+    const currentUser = await requireUser(ctx);
+
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
@@ -207,6 +217,12 @@ export const useInvitation = mutation({
       throw new Error("Invitation has expired");
     }
 
+    if (identity.emailVerified !== true || identity.email?.toLowerCase() !== invitation.email.toLowerCase()) throw new Error("FORBIDDEN");
+    const invitedRoom = await ctx.db.get(invitation.roomId);
+    if (!invitedRoom || invitedRoom.isDeleted) throw new Error("Room not found");
+    const existingGrant = await ctx.db.query("roomInvitations").withIndex("by_room_user", q => q.eq("roomId", invitation.roomId).eq("invitedUser", currentUser._id)).first();
+    if (existingGrant) await ctx.db.patch(existingGrant._id, { status: "accepted" });
+    else await ctx.db.insert("roomInvitations", { roomId: invitation.roomId, invitedBy: invitation.invitedBy, invitedUser: currentUser._id, status: "accepted", createdAt: Date.now() });
     // Mark invitation as used
     await ctx.db.patch(invitation._id, {
       status: "used",
@@ -261,7 +277,7 @@ export const getSentInvitations = query({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", `clerk:${identity.subject}`))
       .unique();
 
     if (!user) {
@@ -310,7 +326,7 @@ export const getReceivedInvitations = query({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", `clerk:${identity.subject}`))
       .unique();
 
     if (!user) {
@@ -368,7 +384,7 @@ export const cancelInvitation = mutation({
     // Get the user's record
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", `clerk:${identity.subject}`))
       .unique();
 
     if (!user) {

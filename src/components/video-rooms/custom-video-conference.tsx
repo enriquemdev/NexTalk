@@ -99,7 +99,7 @@ export function CustomVideoConference({
     <div className="lk-video-conference" {...props}>
       <LayoutContextProvider
         value={layoutContext}
-        onWidgetChange={setWidgetState}
+        onWidgetChange={state => setWidgetState({ ...state, showSettings: state.showSettings ?? false })}
       >
         <div className="lk-video-conference-inner">
           {!focusTrack ? (

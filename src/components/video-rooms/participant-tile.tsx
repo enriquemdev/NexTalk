@@ -1,5 +1,5 @@
 import { Track } from "livekit-client";
-import { useTracks, VideoTrack } from "@livekit/components-react";
+import { useTracks, VideoTrack, isTrackReference } from "@livekit/components-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Mic, MicOff } from "lucide-react";
@@ -35,7 +35,7 @@ export const ParticipantTile = ({ participant, className }: ParticipantTileProps
   return (
     <div className={cn("flex flex-col items-center justify-center", className)}>
       <div className="relative min-h-[200px] min-w-[200px] rounded-xl bg-background">
-        {videoTrack ? (
+        {videoTrack && isTrackReference(videoTrack) ? (
           <VideoTrack 
             trackRef={videoTrack}
             className="rounded-xl"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { api } from "convex/_generated/api";
 import { Id } from "convex/_generated/dataModel";
@@ -10,17 +10,18 @@ export function useCurrentUser() {
   const { userId: clerkUserId, isLoaded: isAuthLoaded } = useAuth();
   const { user: clerkUser } = useUser();
   const createOrUpdateUser = useMutation(api.users.createOrUpdate);
+  const { isAuthenticated: convexAuthenticated } = useConvexAuth();
   
   // Get the user from Convex based on the Clerk ID
   const user = useQuery(
     api.users.getByToken,
-    clerkUserId ? { tokenIdentifier: `clerk:${clerkUserId}` } : "skip"
+    clerkUserId && convexAuthenticated ? { tokenIdentifier: `clerk:${clerkUserId}` } : "skip"
   );
 
   // Create a user in Convex if one doesn't exist
   useEffect(() => {
     const syncUser = async () => {
-      if (clerkUserId && isAuthLoaded && !user && clerkUser) {
+      if (clerkUserId && isAuthLoaded && convexAuthenticated && user === null && clerkUser) {
         try {
           // Extract name with multiple fallbacks
           let name = "";
@@ -62,7 +63,7 @@ export function useCurrentUser() {
     };
 
     syncUser();
-  }, [clerkUserId, isAuthLoaded, user, clerkUser, createOrUpdateUser]);
+  }, [clerkUserId, isAuthLoaded, user, clerkUser, createOrUpdateUser, convexAuthenticated]);
 
   // Return null during initial loading or if not authenticated
   if (!isAuthLoaded || !clerkUserId) {
@@ -76,6 +77,6 @@ export function useCurrentUser() {
   return {
     user,
     userId: user?._id as Id<"users"> | null,
-    isLoading: false,
+    isLoading: !convexAuthenticated || user == null,
   };
 } 

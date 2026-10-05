@@ -85,7 +85,7 @@ export default function SearchBar() {
           </div>
           <div className="absolute right-3 flex items-center gap-1 pointer-events-none">
             <Kbd className="text-xs">
-              {navigator.platform.indexOf("Mac") === 0 ? "⌘" : "Ctrl"}
+              {typeof navigator !== "undefined" && navigator.platform.indexOf("Mac") === 0 ? "⌘" : "Ctrl"}
             </Kbd>
             <span className="text-xs text-muted-foreground">+</span>
             <Kbd className="text-xs">K</Kbd>

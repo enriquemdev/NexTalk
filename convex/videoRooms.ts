@@ -1,3 +1,4 @@
+import { requireUser } from "./access";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
@@ -15,6 +16,8 @@ export const ensureVideoRoomExists = mutation({
     // userId: v.optional(v.id("users")) // Pass userId if you want to track creator
   },
   handler: async (ctx, { roomName }): Promise<Id<"videoRooms">> => {
+    await requireUser(ctx);
+
     if (!roomName || roomName.trim().length === 0) {
       throw new Error("Video room name cannot be empty.");
     }

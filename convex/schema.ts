@@ -2,6 +2,18 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  summaries: defineTable({
+    roomId: v.id("rooms"), content: v.string(), createdAt: v.number(), updatedAt: v.number(),
+    model: v.optional(v.string()), sourceCount: v.optional(v.number()), truncated: v.optional(v.boolean()),
+  }).index("by_room", ["roomId"]),
+  // Atomic usage ledger: failures count too, so retries cannot bypass spending limits.
+  summaryRuns: defineTable({
+    roomId: v.id("rooms"), userId: v.id("users"), createdAt: v.number(),
+    state: v.union(v.literal("pending"), v.literal("saved"), v.literal("failed")),
+    model: v.string(), sourceCount: v.number(), truncated: v.boolean(),
+  }).index("by_createdAt", ["createdAt"])
+    .index("by_user_createdAt", ["userId", "createdAt"])
+    .index("by_room_createdAt", ["roomId", "createdAt"]),
   // Users and Authentication
   users: defineTable({
     // Authentication fields
@@ -75,7 +87,8 @@ export default defineSchema({
     .index("by_visibility", ["isPrivate"])
     .index("by_deletion", ["isDeleted"])
     .index("by_type", ["type"])
-    .index("by_accessCode", ["accessCode"]), // Add index for accessCode
+    .index("by_accessCode", ["accessCode"])
+    .index("by_name", ["name"]), // Add index for accessCode
   
   // Room participants and their roles
   roomParticipants: defineTable({
@@ -214,6 +227,7 @@ export default defineSchema({
     .index("by_room", ["roomId"])
     // Find all invitations by a user (for listing/management)
     .index("by_inviter", ["invitedBy"])
+    .index("by_inviter_createdAt", ["invitedBy", "createdAt"])
     // Find expired invitations (for cleanup)
     .index("by_expiry", ["expiresAt"])
     // Find invitations by status (for filtering/cleanup)

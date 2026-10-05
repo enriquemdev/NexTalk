@@ -1,3 +1,4 @@
+import { requireSelf, requireRoomAccess } from "./access";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
@@ -14,6 +15,11 @@ export const send = mutation({
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId);
+    if (!args.content.trim() || args.content.length > 4000) throw new Error("Invalid message length");
+
+    await requireSelf(ctx, args.userId);
+
     // Check if the user is in the room
     const participant = await ctx.db
       .query("roomParticipants")
@@ -49,7 +55,9 @@ export const listMessagesWithUsers = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 100;
+    await requireRoomAccess(ctx, args.roomId);
+
+    const limit = Math.max(1, Math.min(100, Math.floor(args.limit ?? 100)));
 
     // Fetch messages ordered by creation time
     const messages = await ctx.db
@@ -84,7 +92,9 @@ export const getByRoom = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 50;
+    await requireRoomAccess(ctx, args.roomId);
+
+    const limit = Math.max(1, Math.min(100, Math.floor(args.limit ?? 50)));
     const query = ctx.db
       .query("messages")
       .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))
@@ -148,6 +158,8 @@ export const deleteMessage = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const message = await ctx.db.get(args.messageId);
     if (!message) {
       throw new Error("Message not found");
@@ -196,6 +208,11 @@ export const addReaction = mutation({
     type: v.string(), // Emoji type
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+    await requireRoomAccess(ctx, args.roomId);
+    const message = await ctx.db.get(args.messageId);
+    if (!message || message.roomId !== args.roomId || message.isDeleted) throw new Error("Message unavailable");
+
     // Check if user is in the room
     const participant = await ctx.db
       .query("roomParticipants")
@@ -248,6 +265,9 @@ export const getReactions = query({
     messageId: v.id("messages"),
   },
   handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) throw new Error("Message unavailable");
+    await requireRoomAccess(ctx, message.roomId);
     const reactions = await ctx.db
       .query("reactions")
       .withIndex("by_message", (q) => q.eq("messageId", args.messageId))

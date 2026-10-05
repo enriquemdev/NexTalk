@@ -1,65 +1,21 @@
-import { AccessToken } from 'livekit-server-sdk';
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
-
-// Do not cache endpoint result
+import { AccessToken } from "livekit-server-sdk";
+import { z } from "zod";
+import { api } from "convex/_generated/api";
+import { serverSession } from "@/lib/server/session";
+import { boundedJson } from "@/lib/server/body";
 export const revalidate = 0;
-
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
-    // Get authentication info
-    const auth = getAuth(req);
-    
-    if (!auth.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const userId = auth.userId;
-    
-    // Get request data
-    const { roomId, name } = await req.json();
-    
-    if (!roomId) {
-      return NextResponse.json({ error: 'Room ID is required' }, { status: 400 });
-    }
-    
-    // Check environment variables
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    
-    if (!apiKey || !apiSecret) {
-      return NextResponse.json(
-        { error: 'LiveKit API credentials not configured' }, 
-        { status: 500 }
-      );
-    }
-    
-    // Create token with identity set to Clerk user ID
-    const at = new AccessToken(apiKey, apiSecret, {
-      identity: userId,
-      name: name || 'User',
-    });
-    
-    // Grant permissions
-    at.addGrant({
-      roomJoin: true,
-      room: roomId,
-      canPublish: true,
-      canSubscribe: true,
-    });
-    
-    // Generate JWT token
-    const token = await at.toJwt();
-    
-    return NextResponse.json(
-      { token },
-      { headers: { "Cache-Control": "no-store" } }
-    );
-  } catch (error) {
-    console.error('Error generating LiveKit token:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate token' }, 
-      { status: 500 }
-    );
-  }
-} 
+    const session = await serverSession();
+    if (!session) return Response.json({ error: "Authentication required" }, { status: 401 });
+    let body;
+    try { body = z.object({ roomId: z.string().min(1).max(150), name: z.string().max(100).optional() }).parse(await boundedJson(request)); }
+    catch { return Response.json({ error: "Invalid request" }, { status: 400 }); }
+    if (!await session.client.query(api.rooms.authorizeVideoRoom, { roomName: body.roomId })) return Response.json({ error: "Room access denied" }, { status: 403 });
+    const key = process.env.LIVEKIT_API_KEY, secret = process.env.LIVEKIT_API_SECRET;
+    if (!key || !secret) return Response.json({ error: "Video service unavailable" }, { status: 503 });
+    const token = new AccessToken(key, secret, { identity: session.userId, name: body.name || "Participant", ttl: "5m" });
+    token.addGrant({ roomJoin: true, room: body.roomId, canPublish: true, canSubscribe: true });
+    return Response.json({ token: await token.toJwt() }, { headers: { "Cache-Control": "no-store" } });
+  } catch { return Response.json({ error: "Video service unavailable" }, { status: 503 }); }
+}

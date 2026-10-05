@@ -5,8 +5,8 @@
 // import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 // import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Id } from "convex/_generated/dataModel";
 // import { LiveKitAudioRoom } from "@/components/rooms/livekit-room";
@@ -29,10 +29,30 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
   roomId,
 }) => {
   const router = useRouter();
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const { user, isLoading } = useCurrentUser();
 
   // Fetch room data
-  const room = useQuery(api.rooms.get, { roomId });
+  const room = useQuery(api.rooms.get, user ? { roomId } : "skip");
+  const canRead = useQuery(api.rooms.canReadRoom, user ? { roomId } : "skip");
+  const currentUserId = user?._id;
+  const roomStatus = room?.status;
+  const join = useMutation(api.rooms.joinRoom);
+  const [joined, setJoined] = useState(false);
+  const [joinError, setJoinError] = useState("");
+  useEffect(() => {
+    let active = true;
+    setJoined(false); setJoinError("");
+    if (currentUserId && roomStatus) {
+      if (roomStatus === "ended") {
+        if (canRead === true) setJoined(true);
+        else if (canRead === false) setJoinError("You do not have access to this conversation.");
+      } else if (roomStatus === "live") {
+        join({ roomId, userId: currentUserId }).then(() => { if (active) setJoined(true); }).catch(() => { if (active) setJoinError("This room is unavailable or you do not have access."); });
+      } else setJoinError("This room has not started yet.");
+    }
+    return () => { active = false; };
+  }, [roomStatus, currentUserId, roomId, join, canRead]);
 
   // Redirect to login page if not authenticated
   useEffect(() => {
@@ -72,7 +92,11 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
     );
   }
 
-  if (!room) {
+  if (room === null) return <p role="alert" className="p-8">Room unavailable.</p>;
+
+  if (joinError) return <p role="alert" className="p-8">{joinError}</p>;
+
+  if (!room || !joined) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[50vh]">
@@ -91,13 +115,14 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
         participantCount={room.participantCount}
         isPrivate={room.isPrivate}
       />
+      <Button variant="outline" onClick={() => setSummaryOpen(true)}>AI summary</Button>
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1">
           <div className="flex-1 overflow-y-auto p-4">
             <MessageList roomId={room._id} />
           </div>
           <div className="border-t p-4 bg-background">
-            <MessageInput roomId={room._id} />
+            {room.status === "live" && <MessageInput roomId={room._id} />}
           </div>
         </div>
         {/* {showParticipants && (
@@ -107,9 +132,11 @@ const RoomClientComponent: React.FC<RoomClientComponentProps> = ({
         )} */}
 
         <SummaryRoomModal
+          key={room._id}
+          canGenerate={room.createdBy === user._id}
           roomId={room._id}
-          isOpen={true}
-          onOpenChange={() => {}}
+          isOpen={summaryOpen}
+          onOpenChange={setSummaryOpen}
         />
         {/* <div className="mb-6">
           <div className="flex justify-between items-start">

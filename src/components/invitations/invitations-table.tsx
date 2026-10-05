@@ -118,7 +118,7 @@ export function InvitationsTable({ type }: InvitationsTableProps) {
   }
 
   // Helper function to get the sender name for received invitations
-  const getSenderName = (invitation: any) => {
+  const getSenderName = (invitation: { email: string; inviter?: { name?: string } | null }) => {
     if (type === "sent") {
       return invitation.email;
     }

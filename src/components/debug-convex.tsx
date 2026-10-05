@@ -10,8 +10,7 @@ export function DebugConvex() {
   useEffect(() => {
     // Catch and display any console errors
     const originalError = console.error;
-    console.error = function() {
-      const args = Array.from(arguments);
+    console.error = function(...args: unknown[]) {
       setError(args.join(' '));
       originalError.apply(console, args);
     };
@@ -32,12 +31,12 @@ export function DebugConvex() {
         </div>
       )}
       <p className="mt-2 text-sm text-muted-foreground">
-        If you're seeing authentication errors, make sure:
+        If you are seeing authentication errors, make sure:
       </p>
       <ol className="list-decimal pl-5 mt-1 text-sm text-muted-foreground">
-        <li>You've created a "convex" JWT template in Clerk</li>
+        <li>You have created a &quot;convex&quot; JWT template in Clerk</li>
         <li>The auth.js file has the correct Clerk domain</li>
-        <li>You've configured convex.json correctly</li>
+        <li>You have configured convex.json correctly</li>
         <li>The Convex dev server is running (npx convex dev)</li>
       </ol>
     </div>

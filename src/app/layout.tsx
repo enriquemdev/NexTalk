@@ -8,7 +8,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { AudioContextProvider } from "@/providers/audio-provider";
 import "@livekit/components-styles";
 import { AuthSync } from "@/components/auth/auth-sync";
-import { ThemeToggle } from "@/components/core/theme-toggle";
 
 const inter = Inter({ subsets: ["latin"] });
 

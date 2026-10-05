@@ -33,14 +33,3 @@ export async function generateMetadata({
     description: `Join the video room ${id} for seamless video conferencing.`,
   };
 }
-
-// Generar parámetros estáticos (opcional, si necesitas rutas estáticas)
-export async function generateStaticParams() {
-  // Example: Fetch actual room IDs from your data source if needed
-  // For now, using placeholder IDs
-  const roomIds = ['room1-id', 'room2-id', 'room3-id'];
-
-  return roomIds.map(roomId => ({
-    id: roomId,
-  }));
-}

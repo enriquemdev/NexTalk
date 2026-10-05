@@ -1,3 +1,4 @@
+import { requireSelf, requireRoomAccess, requireAdmin } from "./access";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -12,6 +13,9 @@ export const sendRoomReaction = mutation({
     type: v.string(), // emoji type
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+    await requireRoomAccess(ctx, args.roomId);
+
     // Check if the user is in the room
     const participant = await ctx.db
       .query("roomParticipants")
@@ -48,6 +52,8 @@ export const getRecentRoomReactions = query({
     since: v.optional(v.number()), // timestamp
   },
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId);
+
     const limit = args.limit ?? 30;
     let query = ctx.db
       .query("reactions")
@@ -92,6 +98,8 @@ export const getReactionCounts = query({
     timeWindow: v.optional(v.number()), // in milliseconds, e.g., 60000 for last minute
   },
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId);
+
     let query = ctx.db
       .query("reactions")
       .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))
@@ -129,6 +137,8 @@ export const cleanupOldReactions = mutation({
     olderThan: v.number(), // timestamp
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
     const oldReactions = await ctx.db
       .query("reactions")
       .withIndex("by_room_createdAt", (q) => q.eq("roomId", args.roomId))

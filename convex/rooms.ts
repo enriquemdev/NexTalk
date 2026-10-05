@@ -1,3 +1,4 @@
+import { requireUser, requireSelf, requireRoomAccess, requireAdmin } from "./access";
 import { v } from "convex/values";
 import { mutation, query, internalMutation, internalAction, internalQuery } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
@@ -58,13 +59,14 @@ export const list = query({
     const limit = args.limit ?? 50;
     
     // Exclude deleted rooms
-    return await query
+    const found = await query
       .filter(q => q.or(
         q.eq(q.field("isDeleted"), false),
         q.eq(q.field("isDeleted"), undefined)
       ))
       .order("desc")
       .take(limit);
+    return found.map(({ accessCode: _code, isDeleted: _deleted, deletedAt: _deletedAt, ...room }) => room);
   },
 });
 
@@ -86,13 +88,15 @@ export const create = mutation({
     accessCode: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const now = Date.now();
     const isScheduled = args.scheduledFor && args.scheduledFor > now;
     const isPrivate = args.isPrivate;
 
     let accessCode: string | undefined = undefined;
     if (isPrivate) {
-      accessCode = generateRandomCode(6);
+      accessCode = generateRandomCode(12);
     }
 
     const roomId = await ctx.db.insert("rooms", {
@@ -151,7 +155,8 @@ export const get = query({
     if (room.isDeleted && !args.includeDeleted) return null;
     
     // Let Convex infer the return type from the handler
-    return room; 
+    const { accessCode: _code, ...visible } = room;
+    return visible;
   },
 });
 
@@ -166,12 +171,13 @@ export const listScheduled = query({
     const now = Date.now();
     const limit = args.limit ?? 20;
     
-    return await ctx.db
+    const found = await ctx.db
       .query("rooms")
       .withIndex("by_status", (q) => q.eq("status", "scheduled"))
       .filter((q) => q.gt(q.field("scheduledFor"), now))
       .order("asc")
       .take(limit);
+    return found.map(({ accessCode: _code, isDeleted: _deleted, deletedAt: _deletedAt, ...room }) => room);
   },
 });
 
@@ -186,11 +192,12 @@ export const listByUser = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
     
-    return await ctx.db
+    const found = await ctx.db
       .query("rooms")
       .withIndex("by_creator", (q) => q.eq("createdBy", args.userId))
       .order("desc")
       .take(limit);
+    return found.map(({ accessCode: _code, isDeleted: _deleted, deletedAt: _deletedAt, ...room }) => room);
   },
 });
 
@@ -203,6 +210,8 @@ export const startRoom = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const room = await ctx.db.get(args.roomId);
     if (!room) {
       throw new Error("Room not found");
@@ -263,6 +272,8 @@ export const endRoom = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const room = await ctx.db.get(args.roomId);
     if (!room) {
       throw new Error("Room not found");
@@ -326,8 +337,10 @@ export const joinRoom = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const room = await ctx.db.get(args.roomId);
-    if (!room) {
+    if (!room || room.isDeleted) {
       throw new Error("Room not found");
     }
     
@@ -441,6 +454,7 @@ export const leaveRoom = mutation({
       throw new Error("Participant not found");
     }
     
+    await requireSelf(ctx, participant.userId);
     // Mark the participant as having left
     await ctx.db.patch(args.participantId, {
       leftAt: Date.now(),
@@ -472,6 +486,8 @@ export const changeParticipantRole = mutation({
     newRole: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.requestedBy);
+
     // Check if the requester is host or co-host
     const requesterParticipant = await ctx.db
       .query("roomParticipants")
@@ -569,6 +585,7 @@ export const toggleMute = mutation({
       throw new Error("Participant not found");
     }
     
+    await requireSelf(ctx, participant.userId);
     await ctx.db.patch(args.participantId, {
       isMuted: args.isMuted,
     });
@@ -599,6 +616,7 @@ export const toggleRaiseHand = mutation({
       throw new Error("Participant not found");
     }
     
+    await requireSelf(ctx, participant.userId);
     await ctx.db.patch(participant._id, {
       hasRaisedHand: args.isRaised,
     });
@@ -617,6 +635,9 @@ export const inviteToRoom = mutation({
     invitedUser: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.invitedBy);
+    await requireRoomAccess(ctx, args.roomId, true);
+
     const room = await ctx.db.get(args.roomId);
     if (!room) {
       throw new Error("Room not found");
@@ -689,11 +710,15 @@ export const respondToInvitation = mutation({
     response: v.string(), // "accepted" or "declined"
   },
   handler: async (ctx, args) => {
+    const currentUser = await requireUser(ctx);
+
     const invitation = await ctx.db.get(args.invitationId);
     if (!invitation) {
       throw new Error("Invitation not found");
     }
     
+    if (invitation.invitedUser !== currentUser._id) throw new Error("FORBIDDEN");
+    if (!["accepted", "declined"].includes(args.response)) throw new Error("Invalid response");
     if (invitation.status !== "pending") {
       throw new Error("Invitation has already been responded to");
     }
@@ -753,6 +778,8 @@ export const deleteRoom = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const room = await ctx.db.get(args.roomId);
     if (!room) {
       throw new Error("Room not found");
@@ -895,6 +922,9 @@ export const getAllRoomsInternal = internalQuery({
 export const triggerDeleteAllRooms = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
+    if (process.env.ALLOW_DESTRUCTIVE_OPERATIONS !== "true") throw new Error("Destructive operations disabled");
+
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Unauthorized: Must be logged in to perform this action.");
@@ -925,6 +955,8 @@ export const checkAccessCode = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
+    const currentUser = await requireUser(ctx);
+
     const room = await ctx.db.get(args.roomId);
 
     if (!room) {
@@ -934,15 +966,15 @@ export const checkAccessCode = mutation({
     }
 
     // Check if the room is actually private and the code matches
-    if (room.isPrivate && room.accessCode === args.accessCode) {
-      // Optional: Could add logic here to formally "join" the user 
-      // if validation implies joining permission, e.g., add to roomParticipants
-      // or create a temporary access grant.
+    if (!room.isDeleted && room.isPrivate && room.accessCode === args.accessCode) {
+      const grant = await ctx.db.query("roomInvitations").withIndex("by_room_user", q => q.eq("roomId", room._id).eq("invitedUser", currentUser._id)).first();
+      if (grant) await ctx.db.patch(grant._id, { status: "accepted" });
+      else await ctx.db.insert("roomInvitations", { roomId: room._id, invitedBy: room.createdBy, invitedUser: currentUser._id, status: "accepted", createdAt: Date.now() });
       return true;
     } 
     
     // Log failed attempt for debugging/security
-    console.log(`Access code validation failed for room ${args.roomId}. Provided code: ${args.accessCode}`);
+
     return false;
   },
 });
@@ -979,7 +1011,7 @@ export const listByType = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
     
-    return await ctx.db
+    const found = await ctx.db
       .query("rooms")
       .withIndex("by_type", (q) => q.eq("type", args.type))
       // Exclude deleted rooms
@@ -989,6 +1021,7 @@ export const listByType = query({
       ))
       .order("desc") // Order by creation time descending
       .take(limit);
+    return found.map(({ accessCode: _code, isDeleted: _deleted, deletedAt: _deletedAt, ...room }) => room);
   },
 });
 
@@ -1006,6 +1039,8 @@ export const findRoomByAccessCode = query({
       type: v.union(v.literal('audio'), v.literal('video'))
     }), v.null()),
   handler: async (ctx, args) => {
+    await requireUser(ctx);
+
     if (!args.accessCode) return null; // Don't query for empty code
 
     const room = await ctx.db
@@ -1029,7 +1064,7 @@ export const findRoomByAccessCode = query({
       // Return only the ID and type needed for redirection
       return { roomId: room._id, type: room.type }; 
     } else {
-      console.log(`No active private room found for access code: ${args.accessCode}`);
+
       return null;
     }
   },
@@ -1128,5 +1163,34 @@ export const getRoomIdByVideoRoomName = query({
     rooms.sort((a, b) => b.createdAt - a.createdAt);
     console.log("Using room ID:", rooms[0]._id);
     return rooms[0]._id;
+  },
+});
+/** Server token issuance must authorize the actual room, not a client-supplied identity. */
+export const authorizeVideoRoom = query({
+  args: { roomName: v.string() }, returns: v.boolean(),
+  handler: async (ctx, { roomName }) => {
+    const user = await requireUser(ctx);
+    if (!roomName.trim() || roomName.length > 150) return false;
+    const candidate = roomName.replace(/^nextalk_room_/, "");
+    const roomId = ctx.db.normalizeId("rooms", candidate);
+    const room = roomId ? await ctx.db.get(roomId) : await ctx.db.query("rooms").withIndex("by_name", q => q.eq("name", roomName)).order("desc").first();
+    if (room) {
+      if (room.isDeleted || room.status !== "live") return false;
+      if (!room.isPrivate || room.createdBy === user._id) return true;
+      const invitation = await ctx.db.query("roomInvitations").withIndex("by_room_user", q => q.eq("roomId", room._id).eq("invitedUser", user._id)).first();
+      return invitation?.status === "accepted";
+    }
+    // Ephemeral rooms are authenticated public rooms; they are not private rooms.
+    const ephemeral = await ctx.db.query("videoRooms").withIndex("by_name", q => q.eq("name", roomName)).unique();
+    return !!ephemeral;
+  },
+});
+
+/** Safe UI gate before mounting protected room queries. */
+export const canReadRoom = query({
+  args: { roomId: v.id("rooms") }, returns: v.boolean(),
+  handler: async (ctx, { roomId }) => {
+    try { await requireRoomAccess(ctx, roomId); return true; }
+    catch { return false; }
   },
 });

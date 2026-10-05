@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConvex } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -10,12 +10,11 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 interface InvitePageProps {
-  params: {
-    token: string;
-  };
+  params: Promise<{ token: string }>;
 }
 
 export default function InvitePage({ params }: InvitePageProps) {
+  const { token } = use(params);
   const router = useRouter();
   const convex = useConvex();
   const [isLoading, setIsLoading] = useState(true);
@@ -26,7 +25,7 @@ export default function InvitePage({ params }: InvitePageProps) {
     async function validateInvitation() {
       try {
         const result = await convex.query(api.invitations.validateInvitation, {
-          token: params.token,
+          token: token,
         });
 
         if (!result.valid) {
@@ -54,13 +53,13 @@ export default function InvitePage({ params }: InvitePageProps) {
     }
 
     validateInvitation();
-  }, [convex, params.token]);
+  }, [convex, token]);
 
   const handleJoinRoom = async () => {
     try {
       setIsLoading(true);
       const roomId = await convex.mutation(api.invitations.useInvitation, {
-        token: params.token,
+        token: token,
       });
       
       toast.success("Invitation accepted!");

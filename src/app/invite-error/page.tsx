@@ -3,13 +3,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 interface InviteErrorPageProps {
-  searchParams: {
-    reason?: string;
-  };
+  searchParams: Promise<{ reason?: string }>;
 }
 
-export default function InviteErrorPage({ searchParams }: InviteErrorPageProps) {
-  const { reason = 'unknown' } = searchParams;
+export default async function InviteErrorPage({ searchParams }: InviteErrorPageProps) {
+  const { reason = 'unknown' } = await searchParams;
 
   const errorMessages = {
     'invalid': 'This invitation link is invalid or has expired.',

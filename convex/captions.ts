@@ -1,3 +1,4 @@
+import { requireSelf, requireRoomAccess } from "./access";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -14,6 +15,10 @@ export const addCaption = mutation({
     endTime: v.optional(v.number()), // When speech ended
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+    await requireRoomAccess(ctx, args.roomId);
+    if (!args.content.trim() || args.content.length > 4000) throw new Error("Invalid caption length");
+
     // Check if the user is in the room
     const participant = await ctx.db
       .query("roomParticipants")
@@ -56,6 +61,9 @@ export const updateCaption = mutation({
       throw new Error("Caption not found");
     }
     
+    await requireSelf(ctx, caption.userId);
+    await requireRoomAccess(ctx, caption.roomId);
+    if (args.content !== undefined && (!args.content.trim() || args.content.length > 4000)) throw new Error("Invalid caption length");
     const updates: {
       content?: string;
       endTime?: number;
@@ -90,6 +98,8 @@ export const getForTimeRange = query({
     endTime: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId);
+
     const captions = await ctx.db
       .query("captions")
       .withIndex("by_room_time", (q) => q.eq("roomId", args.roomId))
@@ -135,6 +145,8 @@ export const getRecentCaptions = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId);
+
     const limit = args.limit ?? 10;
     
     const captions = await ctx.db
@@ -178,6 +190,8 @@ export const getByUser = query({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId);
+
     const captions = await ctx.db
       .query("captions")
       .withIndex("by_user_room", (q) => 
