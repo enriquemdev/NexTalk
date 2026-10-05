@@ -35,7 +35,8 @@ export function VideoRoomsSection() {
               roomId={room._id}
               roomName={room.name}
               isPrivate={room.isPrivate}
-              isActive={room.status === 'live'}
+              roomType={room.type}
+          status={room.status}
             />
           ))
         ) : (
@@ -48,4 +49,4 @@ export function VideoRoomsSection() {
       </div>
     </div>
   );
-} 
+}

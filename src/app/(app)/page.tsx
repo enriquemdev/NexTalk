@@ -22,21 +22,23 @@ export default function Home() {
       <main className="mt-8">
         <HeroSection />
 
-        <section className="mt-16">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold">Video Rooms</h2>
+        <section id="video-rooms" className="mt-12 scroll-mt-6" aria-labelledby="video-rooms-heading">
+          <div className="flex flex-wrap gap-3 justify-between items-center mb-6">
+            <h2 id="video-rooms-heading" className="text-2xl font-semibold">Video Rooms</h2>
             <CreateVideoRoomButton />
           </div>
           {isLoadingVideoRooms ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[150px]">
-                <div className="col-span-full flex justify-center items-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div role="status" className="col-span-full flex gap-2 justify-center items-center">
+                    <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <span className="text-muted-foreground">Loading video rooms...</span>
                 </div>
             </div>
           ) : videoRooms && videoRooms.length === 0 ? (
-            <p className="text-muted-foreground">
-              No active video rooms right now. Start one!
-            </p>
+            <div className="text-center py-10 border rounded-lg bg-muted/30">
+              <p className="font-medium mb-2">No video rooms yet</p>
+              <p className="text-sm text-muted-foreground">Create a new video room to start a conversation. Private rooms require the host&apos;s access code.</p>
+            </div>
           ) : videoRooms && videoRooms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videoRooms.map((room) => (
@@ -45,7 +47,8 @@ export default function Home() {
                   roomId={room._id}
                   roomName={room.name}
                   isPrivate={room.isPrivate}
-                  isActive={room.status === 'live' || room.status === 'scheduled'}
+                  roomType={room.type}
+                  status={room.status}
                 />
               ))}
             </div>

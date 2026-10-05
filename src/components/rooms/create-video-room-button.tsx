@@ -40,12 +40,13 @@ export function CreateVideoRoomButton() {
   const [roomName, setRoomName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [accessCode, setAccessCode] = useState<string | null>(null);
   const [showAccessCodeDialog, setShowAccessCodeDialog] = useState(false);
   const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
   const router = useRouter();
   const createRoom = useMutation(api.rooms.create);
-  const { userId } = useCurrentUser();
+  const { userId, isLoading: isUserLoading } = useCurrentUser();
 
   // User search and invitation state
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,12 +55,12 @@ export function CreateVideoRoomButton() {
   const [isSendingInvites, setIsSendingInvites] = useState(false);
 
   // Get all users when no search query is provided
-  const allUsers = useQuery(api.users.listUsers, { limit: 20 });
+  const allUsers = useQuery(api.users.listUsers, showAccessCodeDialog && userId ? { limit: 20 } : "skip");
   
   // Use search results when a search query is provided
   const searchResults = useQuery(
     api.users.searchUsers,
-    debouncedSearchQuery ? { searchQuery: debouncedSearchQuery, limit: 10 } : "skip"
+    showAccessCodeDialog && userId && debouncedSearchQuery ? { searchQuery: debouncedSearchQuery, limit: 10 } : "skip"
   );
 
   // Determine which user list to display
@@ -81,29 +82,20 @@ export function CreateVideoRoomButton() {
   };
 
   const handleCreateRoom = async () => {
+    if (isCreating || isUserLoading) return;
     if (!userId) {
-      toast.error("You must be logged in to create a room");
       setIsOpen(false);
+      router.push("/sign-in");
       return;
     }
 
     setIsCreating(true);
+    setCreateError(null);
     setCreatedRoomId(null);
     setAccessCode(null);
 
-    let finalRoomName = roomName.trim() || randomString(8);
-    if (finalRoomName === 'undefined' || finalRoomName === '') {
-      finalRoomName = randomString(8);
-    }
-    finalRoomName = finalRoomName
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .toLowerCase();
-    if (!finalRoomName) {
-      finalRoomName = randomString(8);
-    }
-
-    console.log(`Attempting to create ${isPrivate ? 'private' : 'public'} video room:`, finalRoomName);
+    // The route uses the room ID, so the display name does not need slugification.
+    const finalRoomName = roomName.trim() || randomString(8);
 
     try {
       const result = await createRoom({
@@ -128,6 +120,7 @@ export function CreateVideoRoomButton() {
 
     } catch (error: unknown) {
       console.error("Failed to create room via Convex:", error);
+      setCreateError("Could not create the room. Check your connection and try again.");
       toast.error("Failed to create room. Please try again.");
       setCreatedRoomId(null);
     } finally {
@@ -210,7 +203,9 @@ export function CreateVideoRoomButton() {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => {
+        if (isCreating) return;
         setIsOpen(open);
+        setCreateError(null);
         if (!open) {
           setRoomName("");
           setIsPrivate(false);
@@ -219,7 +214,7 @@ export function CreateVideoRoomButton() {
         }
       }}>
         <DialogTrigger asChild>
-          <Button variant="secondary" className="flex items-center gap-2">
+          <Button variant="secondary" className="flex items-center gap-2" disabled={isUserLoading}>
             <VideoIcon className="w-4 h-4" />
             New Video Room
           </Button>
@@ -229,6 +224,7 @@ export function CreateVideoRoomButton() {
             <DialogTitle>Create a New Video Room</DialogTitle>
             <DialogDescription>
               Start a new video conference. You can invite others by sharing the room link.
+              {!userId && " Sign in before creating a room."}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -241,6 +237,8 @@ export function CreateVideoRoomButton() {
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   className="w-full"
+                  maxLength={100}
+                  disabled={isCreating}
                 />
               </div>
               <div className="flex items-center space-x-2 pt-2">
@@ -248,21 +246,23 @@ export function CreateVideoRoomButton() {
                   id="is-private-video"
                   checked={isPrivate}
                   onCheckedChange={setIsPrivate}
+                  disabled={isCreating}
                 />
                 <Label htmlFor="is-private-video">Private Room (requires access code)</Label>
               </div>
             </div>
           </div>
+          {createError && <p role="alert" className="text-sm text-destructive">{createError}</p>}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isCreating}>
               Cancel
             </Button>
             <Button
               type="submit"
               onClick={handleCreateRoom}
-              disabled={isCreating}
+              disabled={isCreating || isUserLoading}
             >
-              {isCreating ? "Creating..." : "Create Room"}
+              {isCreating ? "Creating..." : !userId ? "Sign in to create" : "Create Room"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -346,4 +346,4 @@ export function CreateVideoRoomButton() {
       </AlertDialog>
     </>
   );
-} 
+}

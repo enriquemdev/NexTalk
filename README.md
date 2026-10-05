@@ -55,6 +55,19 @@ The existing OpenAI model default is `gpt-4o`; `OPENAI_SUMMARY_MODEL` selects a 
 
 ## Validation
 
+### Short demo path
+
+Use only a matched **development** Clerk/Convex setup and disposable test accounts/rooms. Start with `npm run dev` after the local setup above; do not point a demo at production data.
+
+1. Home → **Explore rooms**: explain live versus scheduled rooms and the empty state.
+2. Sign in → **New Video Room**: create a room with a readable title. Private rooms display a case-sensitive access code; copy it exactly.
+3. **Join Private Room** → paste the code → video pre-join screen. A working call additionally requires configured LiveKit; seeing the lobby is not connection proof.
+4. For an existing authorized chat room, open it from **Live rooms**. This route currently demonstrates text chat, not an active audio call.
+
+Do not demo paid AI generation, audio recording/replay or automatic captions as working features. Local unit tests and isolated UI fixtures do not verify external authentication, video or email delivery.
+
+### Checks
+
 ```sh
 npm run typecheck
 npm run lint

@@ -19,11 +19,16 @@ interface VideoRoomCardProps {
   roomId: Id<"rooms">;
   roomName: string;
   isPrivate: boolean;
-  isActive?: boolean;
+  roomType: "audio" | "video";
+  status: string;
 }
 
-export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: VideoRoomCardProps) {
+export function VideoRoomCard({ roomId, roomName, isPrivate, roomType, status }: VideoRoomCardProps) {
   const router = useRouter();
+  const roomPath = roomType === "video" ? `/video-rooms/${roomId}` : `/rooms/${roomId}`;
+  const isLive = status === "live";
+  const canEnter = isLive || (status === "ended" && roomType === "audio");
+  const statusLabel = isLive ? "Live" : status === "scheduled" ? "Scheduled" : status === "ended" ? "Ended" : "Unavailable";
   const checkCodeMutation = useMutation(api.rooms.checkAccessCode);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -32,17 +37,19 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
   const [error, setError] = useState<string | null>(null);
 
   const handleJoinClick = () => {
+    if (!canEnter) return;
     if (isPrivate) {
       setError(null);
       setAccessCodeInput("");
       setIsDialogOpen(true);
     } else {
-      router.push(`/video-rooms/${roomId}`);
+      router.push(roomPath);
     }
   };
 
   const handleAccessCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading || !canEnter) return;
     if (!accessCodeInput.trim()) {
       setError("Please enter the access code.");
       return;
@@ -60,7 +67,7 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
       if (isValid) {
         setIsDialogOpen(false);
         toast.success("Access code accepted!");
-        router.push(`/video-rooms/${roomId}`);
+        router.push(roomPath);
       } else {
         setError("Invalid access code. Please try again.");
       }
@@ -85,8 +92,8 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
             <CardTitle className="text-lg line-clamp-1 flex items-center gap-2">
               <span className="truncate">{roomName}</span>
             </CardTitle>
-            <Badge variant={isActive ? "default" : "secondary"} className={isActive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" : ""}>
-              {isActive ? "Active" : "Inactive"}
+            <Badge variant={isLive ? "default" : "secondary"} className={isLive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" : ""}>
+              {statusLabel}
             </Badge>
           </div>
         </CardHeader>
@@ -94,7 +101,7 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
         <CardContent>
           <div className="flex items-center text-sm text-muted-foreground">
             <Users className="w-4 h-4 mr-2" />
-            <span>{isPrivate ? "Private Video Room" : "Public Video Room"}</span>
+            <span>{isPrivate ? "Private" : "Public"} {roomType === "video" ? "video room" : "chat room"}</span>
           </div>
         </CardContent>
         
@@ -103,10 +110,11 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
             variant="default"
             className="w-1/2 cursor-pointer"
             onClick={handleJoinClick}
+            disabled={!canEnter}
           >
-            Join
+            {status === "ended" ? (roomType === "audio" ? "View chat" : "Ended") : status === "scheduled" ? "Not started" : "Join"}
           </Button>
-          <InviteUsers 
+          {isLive && <InviteUsers
             roomId={roomId}
             trigger={
               <Button 
@@ -117,7 +125,7 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
                 Invite
               </Button>
             }
-          />
+          />}
         </CardFooter>
       </Card>
 
@@ -141,10 +149,12 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
                   onChange={(e) => setAccessCodeInput(e.target.value)}
                   className="col-span-3"
                   required
+                  autoCapitalize="none"
+                  spellCheck={false}
                   disabled={isLoading}
                 />
               </div>
-              {error && <p className="text-sm text-red-500 col-span-4 text-center">{error}</p>}
+              {error && <p role="alert" className="text-sm text-red-500 col-span-4 text-center">{error}</p>}
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -172,4 +182,4 @@ export function VideoRoomCard({ roomId, roomName, isPrivate, isActive = true }: 
       </AlertDialog> */}
     </>
   );
-} 
+}

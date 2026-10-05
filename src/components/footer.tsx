@@ -7,7 +7,7 @@ interface FooterProps {
 export function Footer({ className }: FooterProps) {
   return (
     <footer className={`border-t py-4 text-center text-sm text-muted-foreground ${className}`}>
-      © {new Date().getFullYear()} NextTalk. All rights reserved.
+      © {new Date().getFullYear()} NexTalk. All rights reserved.
     </footer>
   );
-} 
+}

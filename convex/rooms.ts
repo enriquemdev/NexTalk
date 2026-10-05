@@ -53,7 +53,10 @@ export const list = query({
     }
     
     if (args.isPrivate !== undefined) {
-      query = ctx.db.query("rooms").withIndex("by_visibility", q => q.eq("isPrivate", args.isPrivate as boolean));
+      // Keep the status index/filter when both status and visibility are requested.
+      query = args.status !== undefined
+        ? query.filter(q => q.eq(q.field("isPrivate"), args.isPrivate as boolean))
+        : ctx.db.query("rooms").withIndex("by_visibility", q => q.eq("isPrivate", args.isPrivate as boolean));
     }
     
     const limit = args.limit ?? 50;
@@ -175,6 +178,7 @@ export const listScheduled = query({
       .query("rooms")
       .withIndex("by_status", (q) => q.eq("status", "scheduled"))
       .filter((q) => q.gt(q.field("scheduledFor"), now))
+      .filter(q => q.neq(q.field("isDeleted"), true))
       .order("asc")
       .take(limit);
     return found.map(({ accessCode: _code, isDeleted: _deleted, deletedAt: _deletedAt, ...room }) => room);
@@ -1014,6 +1018,7 @@ export const listByType = query({
     const found = await ctx.db
       .query("rooms")
       .withIndex("by_type", (q) => q.eq("type", args.type))
+      .filter(q => q.neq(q.field("status"), "ended"))
       // Exclude deleted rooms
       .filter(q => q.or(
         q.eq(q.field("isDeleted"), false),

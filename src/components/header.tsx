@@ -8,16 +8,16 @@ import { AuthButton } from "./auth/auth-button";
 export function Header() {
   return (
     <header className="border-b py-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-2xl font-bold flex gap-2 items-center">
+      <div className="container mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="text-2xl font-bold flex gap-2 items-center">
           <span>
             <SmartphoneNfcIcon className="size-6" />
           </span>
           <span>NexTalk</span>
-        </h1>
+        </div>
         
         {/* Right side actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2">
            <JoinPrivateRoomButton />
            <CreateVideoRoomButton /> 
            {/* <CreateRoomForm /> */}

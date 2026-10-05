@@ -26,7 +26,8 @@ export function JoinPrivateRoomButton() {
 
   const handleFindAndJoinRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    const code = accessCodeInput.trim().toUpperCase(); // Standardize code casing
+    if (isLoading) return;
+    const code = accessCodeInput.trim(); // Codes are case-sensitive; preserve the host's code.
     if (!code) {
         setError("Please enter an access code.");
         return;
@@ -53,7 +54,7 @@ export function JoinPrivateRoomButton() {
         }
     } catch (err) { // Explicitly type err
       console.error("Error finding room by access code:", err);
-      setError(`An error occurred: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError("Unable to join this room. Sign in and check the code, then try again.");
     } finally {
       setIsLoading(false);
     }
@@ -96,10 +97,13 @@ export function JoinPrivateRoomButton() {
                   required
                   disabled={isLoading}
                   placeholder="Enter room access code"
-                  maxLength={12} // Assuming 6 char code
+                  maxLength={12}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
               </div>
-              {error && <p className="text-sm text-red-500 col-span-4 text-center">{error}</p>}
+              {error && <p role="alert" className="text-sm text-red-500 col-span-4 text-center">{error}</p>}
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -114,4 +118,4 @@ export function JoinPrivateRoomButton() {
       </Dialog>
     </>
   );
-} 
+}

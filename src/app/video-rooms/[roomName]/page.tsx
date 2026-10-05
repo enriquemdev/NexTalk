@@ -50,7 +50,7 @@ export async function generateMetadata({
   const resolvedParams = await params;
   const roomName = decodeURIComponent(resolvedParams.roomName);
   return {
-    title: `${roomName} | NextTalk Video Room`,
-    description: `Join the ${roomName} video room on NextTalk for real-time video conferencing.`,
+    title: `${roomName} | NexTalk Video Room`,
+    description: `Join the ${roomName} video room on NexTalk for real-time video conferencing.`,
   };
 }
