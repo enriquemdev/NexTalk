@@ -3,7 +3,6 @@
 import {
   ChevronRight,
   CircleCheckIcon,
-  DiscIcon,
   MegaphoneIcon,
 } from "lucide-react";
 
@@ -25,57 +24,14 @@ import {
 import { useRooms } from "@/hooks/useRooms";
 import Link from "next/link";
 
-const nav = [
-  {
-    title: "Available Rooms",
-    url: "#",
-    icon: CircleCheckIcon,
-    isActive: true,
-  },
-  {
-    title: "Coming up",
-    url: "#",
-    icon: MegaphoneIcon,
-    items: [{ _id: undefined, name: "No available" }],
-  },
-  {
-    title: "Recordings",
-    url: "#",
-    icon: DiscIcon,
-    items: [{ _id: undefined, name: "No available" }],
-  },
-];
-
 export function NavMain() {
   const { useLiveRooms, useScheduledRooms } = useRooms();
-
   const liveRooms = useLiveRooms({ type: "live", limit: 10 });
   const scheduledRooms = useScheduledRooms({ type: "scheduled", limit: 10 });
-
-  const new_nav = nav.map((nav) => {
-    switch (nav.title) {
-      case "Available Rooms":
-        return {
-          ...nav,
-          items:
-            liveRooms?.length === 0
-              ? [{ name: "No available", _id: "" }]
-              : liveRooms,
-        };
-      case "Coming up":
-        return {
-          ...nav,
-          items:
-            scheduledRooms?.length === 0
-              ? [{ name: "No available", _id: "" }]
-              : scheduledRooms,
-        };
-      default:
-        return {
-          ...nav,
-        };
-    }
-  });
+  const nav = [
+    { title: "Live rooms", icon: CircleCheckIcon, items: liveRooms, empty: "No live rooms yet" },
+    { title: "Coming up", icon: MegaphoneIcon, items: scheduledRooms, empty: "No upcoming rooms" },
+  ];
 
   return (
     <SidebarGroup>
@@ -83,10 +39,11 @@ export function NavMain() {
         <SidebarGroupLabel>Rooms</SidebarGroupLabel>
       </div>
       <SidebarMenu>
-        {new_nav.map((item) => (
+        {nav.map((item) => (
           <Collapsible
-            key={`${item?.title} ${item?.icon.name}`}
+            key={item.title}
             asChild
+            defaultOpen
             className="group/collapsible"
           >
             <SidebarMenuItem>
@@ -99,30 +56,29 @@ export function NavMain() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarMenuSub>
-                  {item?.items?.map((subItem) =>
-                    subItem ? (
-                      <SidebarMenuSubItem key={`${subItem.name}`}>
-                        <SidebarMenuSubButton asChild>
-                          {subItem._id !== "" ? (
-                            <Link href={`/rooms/${subItem._id}`}>
-                              <span>{subItem.name}</span>
-                            </Link>
-                          ) : (
-                            <Link href={`/`}>
-                              <span>{subItem.name}</span>
-                            </Link>
-                          )}
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ) : (
-                      ""
-                    )
-                  )}
+                  {item.items === undefined ? (
+                    <li className="px-2 py-2 text-xs text-muted-foreground" role="status">Loading rooms...</li>
+                  ) : item.items.length === 0 ? (
+                    <li className="px-2 py-2 text-xs text-muted-foreground">{item.empty}</li>
+                  ) : item.items.map((room) => (
+                    <SidebarMenuSubItem key={room._id}>
+                      {room.status === "live" ? <SidebarMenuSubButton asChild>
+                        <Link href={room.type === "video" ? `/video-rooms/${room._id}` : `/rooms/${room._id}`}>
+                          <span>{room.name}</span>
+                        </Link>
+                      </SidebarMenuSubButton> : <span className="block px-2 py-2 text-xs text-muted-foreground">{room.name} · not started</span>}
+                    </SidebarMenuSubItem>
+                  ))}
                 </SidebarMenuSub>
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
         ))}
+        <SidebarMenuItem>
+          <SidebarMenuButton disabled tooltip="Audio recording and replay are not available">
+            <span>Recordings · not available</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   );

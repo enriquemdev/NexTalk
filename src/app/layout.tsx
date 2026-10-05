@@ -5,18 +5,18 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/providers/convex-client-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
 import { AudioContextProvider } from "@/providers/audio-provider";
 import "@livekit/components-styles";
 import { AuthSync } from "@/components/auth/auth-sync";
-import { ThemeToggle } from "@/components/core/theme-toggle";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NextTalk - Live Audio Discussions",
+  title: "NexTalk - Video & Chat Rooms",
   description:
-    "Join real-time audio discussions with speakers around the world",
-  keywords: ["audio rooms", "live discussions", "podcasts", "NextTalk"],
+    "Create a video room or join a real-time chat conversation",
+  keywords: ["video rooms", "live discussions", "chat", "NexTalk"],
 };
 
 export default function RootLayout({
@@ -39,6 +39,7 @@ export default function RootLayout({
                 <AuthSync />
                 {children}
                 <Toaster />
+                <SonnerToaster richColors closeButton />
               </AudioContextProvider>
             </ThemeProvider>
           </ConvexClientProvider>

@@ -1,3 +1,4 @@
+import { requireSelf, requireAdmin } from "./access";
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
@@ -13,7 +14,9 @@ export const createOrUpdate = mutation({
     image: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = args.tokenIdentifier;
+    const verified = await ctx.auth.getUserIdentity();
+    if (!verified || args.tokenIdentifier !== `clerk:${verified.subject}`) throw new Error("FORBIDDEN");
+    const identity = `clerk:${verified.subject}`;
 
     // Check if user exists
     const existingUser = await ctx.db
@@ -53,6 +56,10 @@ export const createOrUpdate = mutation({
 export const getByToken = query({
   args: { tokenIdentifier: v.string() },
   handler: async (ctx, args) => {
+    const verified = await ctx.auth.getUserIdentity();
+    if (!verified) return null;
+    if (args.tokenIdentifier !== `clerk:${verified.subject}`) throw new Error("FORBIDDEN");
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_token", (q) =>
@@ -85,6 +92,8 @@ export const updateProfile = mutation({
     image: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const { userId, ...profile } = args;
     await ctx.db.patch(userId, profile);
     return userId;
@@ -100,6 +109,8 @@ export const updateStatus = mutation({
     isOnline: v.boolean(),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     await ctx.db.patch(args.userId, {
       isOnline: args.isOnline,
       lastSeen: Date.now(),
@@ -179,6 +190,8 @@ export const followUser = mutation({
     followingId: v.id("users"), // User to follow
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.followerId);
+
     // Check if already following
     const existing = await ctx.db
       .query("follows")
@@ -221,6 +234,8 @@ export const unfollowUser = mutation({
     followingId: v.id("users"), // User to unfollow
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.followerId);
+
     const follow = await ctx.db
       .query("follows")
       .withIndex("by_both", (q) =>
@@ -353,6 +368,9 @@ export const deleteAllUsers = mutation({
     confirmationPhrase: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    if (process.env.ALLOW_DESTRUCTIVE_OPERATIONS !== "true") throw new Error("Destructive operations disabled");
+
     // Safety check - require a specific confirmation phrase
     if (args.confirmationPhrase !== "ERASE_ALL_USERS_CONFIRM") {
       throw new Error("Incorrect confirmation phrase. Operation aborted for safety.");

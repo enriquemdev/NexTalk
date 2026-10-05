@@ -2,7 +2,7 @@ import { Id } from "convex/_generated/dataModel";
 
 export interface User {
   _id: Id<"users">;
-  _creationTime: number;
+  _creationTime?: number;
   image?: string | undefined;
   name?: string | undefined;
   email?: string | undefined;

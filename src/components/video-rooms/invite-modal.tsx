@@ -18,8 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, Mail, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { useRoomContext } from '@livekit/components-react';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 
@@ -44,13 +43,10 @@ export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: I
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [isSending, setIsSending] = useState<boolean>(false);
   
-  const room = useRoomContext();
   
   // Fetch all users for selection
   const users = useQuery(api.users.listUsers, {}) || [];
   
-  // Add the createInvitation mutation
-  const createInvitation = useMutation(api.invitations.createInvitation);
   
   // Get the room ID from the room name if not provided directly
   const roomIdFromName = useQuery(api.rooms.getRoomIdByVideoRoomName, { 
@@ -60,13 +56,6 @@ export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: I
   // Determine the final room ID to use
   const roomId = propRoomId || roomIdFromName;
 
-  // Debug logging
-  useEffect(() => {
-    console.log('InviteModal - Room name:', roomName);
-    console.log('InviteModal - Direct Room ID:', propRoomId);
-    console.log('InviteModal - Room ID from name lookup:', roomIdFromName);
-    console.log('InviteModal - Final Room ID to use:', roomId);
-  }, [roomName, propRoomId, roomIdFromName, roomId]);
 
   // Filter users based on search query
   const filteredUsers = searchQuery.trim()
@@ -116,7 +105,6 @@ export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: I
     }
     
     setIsSending(true);
-    console.log('handleSendInvite - Starting to send invitations with roomId:', roomId);
     
     try {
       // Send invitations to selected users or manual email
@@ -130,20 +118,10 @@ export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: I
           throw new Error('No valid email addresses found');
         }
         
-        console.log(`handleSendInvite - Sending to ${emails.length} users:`, emails);
-        
         // Send invitations to each email
         let failedEmails = 0;
         await Promise.all(emails.map(async (email) => {
           try {
-            // Create invitation record in Convex
-            console.log(`Creating Convex invitation record for ${email} with roomId:`, roomId);
-            const invitationResult = await createInvitation({
-              roomId,
-              email
-            });
-            console.log(`Invitation record created:`, invitationResult);
-            
             // Send email notification
             await sendInvitation(email);
           } catch (error) {
@@ -152,16 +130,12 @@ export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: I
           }
         }));
         
-        toast.success(`Invitations sent to ${emails.length - failedEmails} users`);
+        if (failedEmails) {
+          toast.error(`${emails.length - failedEmails} invitations sent; ${failedEmails} failed. Please retry only failed recipients.`);
+          return;
+        }
+        toast.success(`Invitations sent to ${emails.length} users`);
       } else {
-        // Create invitation record in Convex
-        console.log(`Creating Convex invitation record for ${manualEmail.trim()} with roomId:`, roomId);
-        const invitationResult = await createInvitation({
-          roomId,
-          email: manualEmail.trim()
-        });
-        console.log(`Invitation record created:`, invitationResult);
-        
         // Send to manually entered email
         await sendInvitation(manualEmail.trim());
         toast.success(`Invitation sent to ${manualEmail}`);
@@ -181,7 +155,6 @@ export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: I
   
   // Helper function to send invitation to a single email
   const sendInvitation = async (email: string) => {
-    console.log(`sendInvitation - Sending email to ${email} for room:`, roomName);
     
     const response = await fetch('/api/invite', {
       method: 'POST',
@@ -191,7 +164,6 @@ export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: I
       body: JSON.stringify({
         email,
         roomName,
-        hostName: room.localParticipant.identity,
         roomId,
       }),
     });
@@ -199,11 +171,10 @@ export function InviteModal({ isOpen, onClose, roomName, roomId: propRoomId }: I
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: `Failed to send invitation to ${email}` }));
       console.error('Email API error:', errorData);
-      throw new Error(errorData.message || `Failed to send invitation to ${email}`);
+      throw new Error(errorData.error || errorData.message || `Failed to send invitation to ${email}`);
     }
     
     const result = await response.json();
-    console.log('Email API response:', result);
     return result;
   };
 

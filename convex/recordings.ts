@@ -1,3 +1,4 @@
+import { requireRoomAccess, requireAdmin } from "./access";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -11,6 +12,8 @@ export const startRecording = mutation({
     userId: v.id("users"), // User requesting the recording
   },
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId, true);
+
     const room = await ctx.db.get(args.roomId);
     if (!room) {
       throw new Error("Room not found");
@@ -66,6 +69,8 @@ export const stopRecording = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId, true);
+
     const room = await ctx.db.get(args.roomId);
     if (!room) {
       throw new Error("Room not found");
@@ -117,6 +122,8 @@ export const listByRoom = query({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
+    await requireRoomAccess(ctx, args.roomId);
+
     const recordings = await ctx.db
       .query("recordings")
       .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
@@ -134,6 +141,10 @@ export const get = query({
     recordingId: v.id("recordings"),
   },
   handler: async (ctx, args) => {
+    const record = await ctx.db.get(args.recordingId);
+    if (!record) return null;
+    await requireRoomAccess(ctx, record.roomId);
+
     return await ctx.db.get(args.recordingId);
   },
 });
@@ -149,6 +160,8 @@ export const updateStatus = mutation({
     url: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
     const recording = await ctx.db.get(args.recordingId);
     if (!recording) {
       throw new Error("Recording not found");

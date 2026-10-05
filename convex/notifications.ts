@@ -1,3 +1,4 @@
+import { requireSelf, requireAdmin } from "./access";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
@@ -14,6 +15,8 @@ export const create = mutation({
     relatedRoomId: v.optional(v.id("rooms")),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
     const notificationId = await ctx.db.insert("notifications", {
       userId: args.userId,
       type: args.type,
@@ -38,6 +41,8 @@ export const getForUser = query({
     includeRead: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const limit = args.limit ?? 20;
     let query = ctx.db
       .query("notifications")
@@ -128,6 +133,12 @@ export const markAsRead = mutation({
     notificationIds: v.array(v.id("notifications")),
   },
   handler: async (ctx, args) => {
+    for (const notificationId of args.notificationIds) {
+      const notification = await ctx.db.get(notificationId);
+      if (!notification) throw new Error("Notification not found");
+      await requireSelf(ctx, notification.userId);
+    }
+
     for (const id of args.notificationIds) {
       await ctx.db.patch(id, {
         isRead: true,
@@ -146,6 +157,8 @@ export const markAllAsRead = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const unreadNotifications = await ctx.db
       .query("notifications")
       .withIndex("by_user_read", (q) => 
@@ -171,6 +184,8 @@ export const countUnread = query({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireSelf(ctx, args.userId);
+
     const unreadNotifications = await ctx.db
       .query("notifications")
       .withIndex("by_user_read", (q) => 
@@ -193,6 +208,8 @@ export const cleanupOldNotifications = mutation({
     readOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
     let query = ctx.db
       .query("notifications")
       .withIndex("by_user_createdAt", (q) => q.eq("userId", args.userId))

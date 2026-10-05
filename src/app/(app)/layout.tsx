@@ -12,7 +12,7 @@ const HomeLayout = ({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="h-screen bg-gradient-to-b from-background to-background/90 w-full">
+      <div className="min-h-screen min-w-0 bg-gradient-to-b from-background to-background/90 w-full">
         <div className="flex flex-col w-full">
           <header className="border-b">
             <div className="py-4 px-4 flex items-center justify-start gap-4">
@@ -25,7 +25,7 @@ const HomeLayout = ({
           </header>
           {children}
         </div>
-      </main>
+      </div>
     </SidebarProvider>
   );
 };

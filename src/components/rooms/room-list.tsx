@@ -90,9 +90,10 @@ export function RoomList({ type, userId, limit = 10 }: RoomListProps) {
           roomId={room._id}
           roomName={room.name}
           isPrivate={room.isPrivate}
-          isActive={room.status === 'live'}
+          roomType={room.type}
+          status={room.status}
         />
       ))}
     </div>
   );
-} 
+}

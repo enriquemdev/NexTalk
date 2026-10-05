@@ -13,7 +13,7 @@ export default function SignInPage() {
           <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
             <SmartphoneNfcIcon className="size-6" />
           </div>
-          NextTalk
+          NexTalk
         </Link>
         <LoginForm />
       </div>

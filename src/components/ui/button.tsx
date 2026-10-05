@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-import { motion } from "framer-motion"
+
 
 import { cn } from "@/lib/utils"
 
@@ -52,22 +52,19 @@ function Button({
 
   if (asChild) {
     return (
-      <Slot className={buttonClasses} {...props}>
+      <Slot className={cn(buttonClasses, "motion-safe:hover:scale-[1.03] motion-safe:active:scale-[0.98]")} {...props}>
         {children}
       </Slot>
     )
   }
 
   return (
-    <motion.button
-      className={buttonClasses}
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+    <button
+      className={cn(buttonClasses, "motion-safe:hover:scale-[1.03] motion-safe:active:scale-[0.98]")}
       {...props}
     >
       {children}
-    </motion.button>
+    </button>
   )
 }
 

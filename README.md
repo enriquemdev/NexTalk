@@ -1,116 +1,85 @@
-# NextTalk
+# NexTalk
 
-NextTalk is a next-generation, real-time audio discussion platform designed to facilitate live audio conversations, drawing inspiration from Twitter Spaces while enhancing the experience with AI-driven features and multimedia integrations.
+Real-time discussion rooms with an **optional, server-controlled AI summary workflow**. Built with Next.js, TypeScript, Convex, Clerk and LiveKit; the AI integration uses the Vercel AI SDK with OpenAI.
 
-## Features
+## What this implementation demonstrates
 
-- **Real-time Audio Discussions**: Host and join live audio conversations
-- **Room Management**: Create, browse, and join discussion rooms
-- **User Authentication**: Secure authentication powered by Clerk
-- **Theme Customization**: Choose between different UI themes
-- **Responsive Design**: Mobile-first approach ensuring great experience on all devices
-- **Real-time Updates**: Powered by Convex database for instant data synchronization
+- Room creation and membership, live chat, invitations and LiveKit token issuance.
+- Summaries of **stored chat messages and finalized captions**, streamed to the UI and saved only after a complete model response.
+- Verified user and room-owner authorization, explicit consent, bounded input/output, transactional request quotas, cancellation and truthful save/error states.
+- Server-side provider credentials; the browser cannot submit an arbitrary transcript or forge another user's identity.
+- Backend, HTTP route and UI regression tests without paid API calls.
 
-## Tech Stack
+This is a portfolio application, **not a claim of production certification**. Automatic speech-to-text, RAG, autonomous agents and model training are not implemented. Existing recording controls represent application state; a verified audio recording/transcription pipeline is not part of this delivery. AI output can be inaccurate and needs human review.
 
-### Frontend
-- **Next.js v15** with App Router
-- **TypeScript**
-- **Tailwind CSS** for styling
-- **Shadcn UI** for component library
-- **React Hook Form** for form handling
-- **Zod** for validation
-- **Sonner** for toast notifications
+## Architecture
 
-### Backend
-- **Convex** for real-time database, authentication, and object storage
-- **Next.js API Routes** for server-side logic
+```text
+Clerk session -> Convex JWT -> verified user / room membership
+                              |
+Room owner + consent -> POST /api/summary
+  -> Convex: authorize, reserve quota, collect bounded source
+  -> OpenAI via AI SDK: stream without tools or automatic retries
+  -> Convex: validate run and persist the actual completed output
+  -> UI: saved receipt, then enable download
+```
 
-### Authentication
-- **Clerk** for user authentication and management
+The recovery ports the useful AI intent from the historical `frontend` branch onto the newer `main` interface. It deliberately does not overwrite `main` with that divergent branch or restore its unsupported transcription endpoint.
 
-### State Management
-- **React Context** for global state
-- **Convex React** for real-time data synchronization
+## Local setup
 
-## Getting Started
+Use **Node.js 24 LTS and npm**. The package manifest also permits Node 25/26; the repair was locally validated with Node 26.8.2. `package-lock.json` is the only supported dependency lockfile.
 
-### Prerequisites
-- Node.js 18+ or Bun
-- npm, yarn, pnpm, or bun package manager
-- Convex account for the backend
-- Clerk account for authentication
+```sh
+npm ci --ignore-scripts
+cp .env.example .env.local
+```
 
-### Environment Setup
-Create a `.env.local` file in the root directory with the following variables:
+1. Create/select **development** Clerk and Convex projects. Fill the public identifiers and the Clerk server key locally.
+2. Configure a Clerk JWT template named `convex`, with audience `convex`. Set `CLERK_JWT_ISSUER_DOMAIN` in the **Convex deployment environment** to the issuer of that same Clerk instance. Invitation acceptance additionally requires verified `email` and `email_verified` claims in that JWT; map them from Clerk account verification, never from editable user metadata. The verified subject maps to the existing `clerk:<subject>` user records.
+3. Run `npx convex dev` against that development project to validate/deploy schema and functions and generate API types. Run `npm run dev` in a second terminal.
+4. Configure LiveKit server URL/key/secret for video. Configure Resend with a verified `RESEND_FROM_EMAIL` and canonical `NEXT_PUBLIC_APP_URL` for invitations. Missing configuration fails closed; these are not required for unit tests.
+5. To enable summaries, configure an OpenAI project key on the Next server and set a freshly generated `SUMMARY_SERVICE_SECRET` (at least 32 characters) on **both Next and Convex**. Then set `ENABLE_AI_SUMMARIES=true` on Next. Never prefix secrets with `NEXT_PUBLIC_`.
 
-## Future Roadmap
+The existing OpenAI model default is `gpt-4o`; `OPENAI_SUMMARY_MODEL` selects a compatible OpenAI chat model. This is **not** a multi-provider switcher. Validate model availability and output behavior before changing it. No fallback provider is used.
 
-NextTalk is being developed in a three-phase approach:
+## Cost and privacy boundaries
 
-1. **Essential MVP**
-   - Core audio rooms
-   - Basic user interactions
-   - Authentication
+- At most **100 recent messages + 100 recent captions**, and **30,000 characters** of serialized source; incomplete captions and deleted messages are excluded. It is an excerpt, not necessarily the entire meeting.
+- At most **2,000 generated tokens**, 12,000 output characters, and a 45-second generation timeout. No automatic provider retries.
+- At most **10 attempts/user/24h**, **100 attempts/deployment/24h**, and one attempt per room per minute. Failed attempts count. These are request quotas, **not an exact dollar spending ceiling**; configure provider-side budget alerts/limits too.
+- The owner must consent before the server sends conversation text to OpenAI. Names/emails are not added as metadata, but users may put personal information inside message text. Obtain participant consent and avoid confidential data.
+- Source text is treated as untrusted data; no tools are exposed to the model. Prompt instructions reduce risk but are not a proof against hallucination or prompt injection.
+- Summaries remain in Convex; usage rows contain metadata, not prompts. No automatic retention/erasure policy is implemented. Define one before using real customer data.
+- Participants with room-history access can read a saved summary; only its owner can generate it. Cancellation can race with a completed save: reopen the summary to verify state before retrying.
 
-2. **Polished Features**
-   - AI-driven enhancements
-   - Real-time translations
-   - Session summaries
-   - Enhanced multimedia capabilities
+## Validation
 
-3. **Commercial Features**
-   - Monetization options
-   - Advanced AI integrations
-   - Experimental features
+### Short demo path
 
-## Contributing
+Use only a matched **development** Clerk/Convex setup and disposable test accounts/rooms. Start with `npm run dev` after the local setup above; do not point a demo at production data.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. Home → **Explore rooms**: explain live versus scheduled rooms and the empty state.
+2. Sign in → **New Video Room**: create a room with a readable title. Private rooms display a case-sensitive access code; copy it exactly.
+3. **Join Private Room** → paste the code → video pre-join screen. A working call additionally requires configured LiveKit; seeing the lobby is not connection proof.
+4. For an existing authorized chat room, open it from **Live rooms**. This route currently demonstrates text chat, not an active audio call.
 
-## License
+Do not demo paid AI generation, audio recording/replay or automatic captions as working features. Local unit tests and isolated UI fixtures do not verify external authentication, video or email delivery.
 
-This project is licensed under the [MIT License](LICENSE).
+### Checks
 
-### Installation
+```sh
+npm run typecheck
+npm run lint
+npm test
+npm audit --omit=dev --audit-level=high
+npm run build
+```
 
-1. Clone the repository
-   ```bash
-   git clone https://github.com/yourusername/nextalk.git
-   cd nextalk
-   ```
+Build requires public Convex/Clerk identifiers. Synthetic identifiers can validate compilation but do not prove authentication or external integrations work. Tests use `convex-test`, mocked providers and browser component tests; see [validation and release checklist](docs/ai-summary-readiness.md) for exact limitations.
 
-2. Install dependencies
-   ```bash
-   npm install
-   # or
-   yarn
-   # or
-   pnpm install
-   # or
-   bun install
-   ```
+## Safe rollout
 
-3. Start the development server
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   # or
-   pnpm dev
-   # or
-   bun dev
-   ```
+Keep AI disabled, back up existing data and inspect the target environment first. Deploy compatible Convex schema/functions **before** the Next application, configure matched development credentials, and complete the real-service checklist before promoting a demo. Do not enable public demo traffic or production migrations merely because tests pass.
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-### Convex Setup
-
-1. Start the Convex development server
-   ```bash
-   npx convex dev
-   ```
-
-2. This will start a local Convex development server and prompt you to log in or create an account if needed.
-
-## Project Structure
+`NEXTALK_ADMIN_USER_IDS` is an optional Convex-only allowlist of verified Clerk subjects. Destructive maintenance also requires `ALLOW_DESTRUCTIVE_OPERATIONS=true`; leave it unset in normal environments.
